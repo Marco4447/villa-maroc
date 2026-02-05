@@ -32,7 +32,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. ENTÊTE MIS À JOUR
+# 3. ENTÊTE
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.subheader("Ingénierie Patrimoniale & Performance Locative")
 st.markdown("---")
@@ -44,13 +44,13 @@ with st.sidebar:
     with st.expander("💳 Financement In Fine", expanded=True):
         prix_total = st.slider("Investissement Global (€)", 500000, 1500000, 670000, step=10000)
         apport = st.slider("Apport Personnel (€)", 0, 1000000, 200000, step=10000)
-        taux_interet = st.sidebar.number_input("Taux Crédit (%)", value=3.70, step=0.05)
+        taux_interet = st.number_input("Taux Crédit (%)", value=3.70, step=0.05)
     
     with st.expander("📅 Exploitation OpCo", expanded=True):
         adr = st.slider("Prix Nuitée (ADR €)", 300, 1500, 500, step=25)
         to = st.slider("Occupation Annuelle (%)", 0, 100, 45, step=1)
 
-# 5. LOGIQUE DE CALCUL (Citations du rapport)
+# 5. LOGIQUE DE CALCUL
 nb_nuits = 365 * (to / 100)
 revenus_annuels = nb_nuits * adr
 
@@ -87,4 +87,15 @@ c1, c2 = st.columns([2, 1])
 
 with c1:
     st.write("### 💎 Analyse du Montage")
-    st.write(f"Le
+    st.write(f"Le projet repose sur un crédit In Fine de **{montant_pret:,.0f} €**. Le service de la dette s'élève à **{interets_annuels/12:,.0f} € / mois**.")
+    
+    marge_nuit = adr * 0.75 - 35
+    seuil_to = ((charges_fixes + interets_annuels) / marge_nuit / 365 * 100) if marge_nuit > 0 else 0
+    
+    if to >= seuil_to:
+        st.success(f"✅ Seuil d'équilibre atteint à {seuil_to:.1f}% d'occupation.")
+    else:
+        st.error(f"⚠️ Seuil d'équilibre non atteint (Requis : {seuil_to:.1f}%)")
+
+with c2:
+    st.write("###
