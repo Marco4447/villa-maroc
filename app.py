@@ -31,8 +31,11 @@ with st.sidebar:
 
     with st.expander("💸 Charges & Fiscalité", expanded=True):
         f_fixes = st.number_input("Charges fixes mensuelles (€)", value=1650)
+        # SECTION CHARGES VARIABLES DÉTAILLÉES
         com_concierge_pct = st.slider("Commission Conciergerie (%)", 0, 30, 20)
         com_airbnb_pct = st.slider("Frais Airbnb/Booking (%)", 0, 20, 3)
+        charges_ops_nuit = st.number_input("Consommables/Linge par nuitée (€)", value=35)
+        
         statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
 
 # 3. MOTEUR DE CALCULS FINANCIERS
@@ -56,19 +59,22 @@ else:
         tableau.append([i, round(mens + p_final, 2), p_final, round(mens, 2), m_pret if i < nb_m else 0])
 
 # --- Analyse de la Rentabilité ---
-rev_brut_m = adr * 30.5 * (occ / 100)
-frais_gestion = rev_brut_m * ((com_concierge_pct + com_airbnb_pct) / 100)
+nuits_mois = 30.5 * (occ / 100)
+rev_brut_m = adr * nuits_mois
+
+# Calcul détaillé des charges variables
+frais_com = rev_brut_m * ((com_concierge_pct + com_airbnb_pct) / 100)
+frais_ops = charges_ops_nuit * nuits_mois
+total_charges_vars = frais_com + frais_ops
 
 # Fiscalité selon le régime (Abattement de 40% pour Personne Physique)
 if statut == "Personne Physique":
-    # Base = 60% du CA Brut, Impôt = 15% de cette base
     impot_m = (rev_brut_m * 0.60) * 0.15
 else:
-    # Personne Morale : Impôt 20% sur le bénéfice net de charges et intérêts
-    benef_avant_is = rev_brut_m - frais_gestion - f_fixes - mens
+    benef_avant_is = rev_brut_m - total_charges_vars - f_fixes - mens
     impot_m = max(0, benef_avant_is * 0.20)
 
-profit_net = rev_brut_m - frais_gestion - f_fixes - mens - impot_m
+profit_net = rev_brut_m - total_charges_vars - f_fixes - mens - impot_m
 
 # 4. AFFICHAGE ÉCRAN PRINCIPAL
 st.title("🏰 Audit de Rentabilité Financière")
@@ -77,8 +83,8 @@ st.title("🏰 Audit de Rentabilité Financière")
 c1, c2, c3, c4 = st.columns(4)
 with c1: st.metric("Profit Net / Mois", f"{int(profit_net)} €")
 with c2: st.metric("Mensualité Crédit", f"{int(mens)} €")
-with c3: st.metric("Impôt Mensuel", f"{int(impot_m)} €")
-dscr = (rev_brut_m - frais_gestion - f_fixes) / mens if mens > 0 else 0
+with c3: st.metric("Charges Variables", f"{int(total_charges_vars)} €")
+dscr = (rev_brut_m - total_charges_vars - f_fixes) / mens if mens > 0 else 0
 with c4: st.metric("Ratio DSCR", f"{dscr:.2f}", help="Indice de solvabilité (>1.20)")
 
 st.markdown("---")
@@ -88,21 +94,20 @@ col_a, col_b = st.columns(2)
 with col_a:
     st.subheader("📝 Détail des Flux Mensuels")
     st.write(f"• Revenu Brut : **{int(rev_brut_m)} €**")
-    st.write(f"• Gestion & Airbnb : **-{int(frais_gestion)} €**")
+    st.write(f"• Commissions (Concierge+Airbnb) : **-{int(frais_com)} €**")
+    st.write(f"• Frais Ops (Linge/Énergie) : **-{int(frais_ops)} €**")
     st.write(f"• Charges Fixes : **-{int(f_fixes)} €**")
     st.write(f"• Impôt ({statut}) : **-{int(impot_m)} €**")
 
 with col_b:
     st.subheader("🏁 Point d'Équilibre")
-    # Calcul simplifié du seuil d'équilibre
-    seuil_ca = (f_fixes + mens) / (1 - (com_concierge_pct + com_airbnb_pct + 10)/100)
-    occ_seuil = (seuil_ca / (adr * 30.5)) * 100
+    seuil_fixes = f_fixes + mens
+    marge_unitaire = adr * (1 - (com_concierge_pct + com_airbnb_pct)/100) - charges_ops_nuit
+    occ_seuil = (seuil_fixes / (marge_unitaire * 30.5)) * 100
     st.info(f"Équilibre atteint à **{int(occ_seuil)}%** d'occupation.")
     st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** par mois.")
 
 st.markdown("---")
 
-# Tableau d'amortissement interactif
-st.subheader(f"📊 Tableau d'Amortissement Dynamique ({type_pret})")
-df_a = pd.DataFrame(tableau, columns=["Mois", "Échéance", "Principal", "Intérêts", "Restant"])
-st.dataframe(df_a, use_container_width=True, height=400, hide_index=True)
+# Tableau d'amortissement
+st.subheader(f"📊 Tableau d'Amortissement Dynamique ({type_pret})
