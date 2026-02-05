@@ -16,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏰 Simulation de rentabilité & Fiscalité Maroc")
+st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
 # 3. BARRE LATÉRALE
@@ -55,12 +55,12 @@ nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
 charges_an = (ca_an * com_concierge / 100) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_mois * 12) + (fixes_mois * 12)
 
-# 5. CALCUL DE L'IMPÔT SUR LE REVENU FONCIER (MAROC)
-# Base imposable = CA Brut - 40% d'abattement forfaitaire
+# 5. CALCUL "IMPOTS MAROC" (Revenu Fonciers)
+# Abattement forfaitaire de 40% sur le CA Brut au Maroc
 base_imposable = ca_an * 0.60
 
-# Barème simplifié (IR foncier)
-if base_imposable <= 3000: # Conversion approximative en Euros
+# Barème IR progressif simplifié
+if base_imposable <= 3000:
     impot_an = 0
 elif base_imposable <= 5000:
     impot_an = (base_imposable * 0.10) - 300
@@ -73,33 +73,31 @@ elif base_imposable <= 18000:
 else:
     impot_an = (base_imposable * 0.38) - 2440
 
-# Profit final
-profit_mensuel_net_impot = (ca_an - charges_an - (mensualite * 12) - impot_an) / 12
+# Profit net final
+profit_mensuel_net = (ca_an - charges_an - (mensualite * 12) - impot_an) / 12
 
 # 6. KPI
 c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("CA Annuel", f"{int(ca_an)} €")
 with c2:
-    st.metric("Net Mensuel (Après Impôt)", f"{int(profit_mensuel_net_impot)} €")
+    st.metric("Net Mensuel (Après Impôt)", f"{int(profit_mensuel_net)} €")
 with c3:
-    renta = (profit_mensuel_net_impot * 12 / apport * 100) if apport > 0 else 0
+    renta = (profit_mensuel_net * 12 / apport * 100) if apport > 0 else 0
     st.metric("Rendement / Apport", f"{renta:.1f} %")
 
 st.markdown("---")
 
-# 7. RÉCAPITULATIF FISCAL & TECHNIQUE
+# 7. RÉCAPITULATIF TECHNIQUE
 col_a, col_b = st.columns(2)
 with col_a:
-    st.subheader("🇲🇦 Fiscalité Marocaine")
-    st.write(f"Revenu Brut : **{int(ca_an)} €**")
-    st.write(f"Abattement forfaitaire (40%) : **-{int(ca_an * 0.40)} €**")
-    st.write(f"Base taxable : **{int(base_imposable)} €**")
-    st.warning(f"Impôt annuel à payer : **{int(impot_an)} €**")
+    st.subheader("🇲🇦 Impôts Maroc")
+    st.write(f"Revenu Brut annuel : **{int(ca_an)} €**")
+    st.write(f"Base taxable (après abattement 40%) : **{int(base_imposable)} €**")
+    st.error(f"Montant annuel des impôts : **{int(impot_an)} €**")
 
 with col_b:
-    st.subheader(f"🏦 Financement {type_pret}")
+    st.subheader(f"🏦 Détails Crédit {type_pret}")
     st.write(f"Mensualité : **{int(mensualite)} €/mois**")
-    st.write(f"Coût total crédit : **{int((mensualite * 12 * ans) - (0 if type_pret == 'In Fine' else m_pret))} €**")
     cap_terme = m_pret if type_pret == "In Fine" else 0
     st.write(f"Capital dû au terme : **{int(cap_terme)} €**")
