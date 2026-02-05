@@ -19,40 +19,33 @@ st.sidebar.markdown("---")
 adr = st.sidebar.slider("Prix de la nuitée (ADR en €)", 300, 1000, 435, step=10)
 to = st.sidebar.slider("Taux d'occupation annuel (%)", 0, 100, 45, step=1)
 
-# --- LOGIQUE DE CALCUL GLOBALE (Source : Rapport Patrimonial) ---
-
-# 1. Revenus réels d'exploitation
+# --- LOGIQUE DE CALCUL GLOBALE (Données du Rapport) ---
 nb_nuits = 365 * (to / 100)
 revenus_annuels = nb_nuits * adr
 
-# 2. Charges d'exploitation totales (OpCo)
-# [cite_start]Selon votre rapport : 25% de com [cite: 313] + [cite_start]35€ ménage/nuit [cite: 313]
+# Charges basées sur les annexes du rapport
 commissions = revenus_annuels * 0.25 
 frais_menage = nb_nuits * 35 
-[cite_start]charges_fixes_annuelles = 14000 # Syndic, Jardin, Eau/Elec [cite: 313, 317]
+charges_fixes_annuelles = 14000 
 
-# 3. Financement In Fine (Personnel)
+# Financement In Fine
 montant_pret = prix_total - apport
 interets_annuels = montant_pret * (taux_interet / 100)
 
-# 4. Profit Net Global (Résultat OpCo + Flux Personnel)
-# On calcule le surplus total réel après avoir payé le crédit
-profit_annuel = revenus_annuels - commissions - frais_menage - charges_fixes_annuelles - interets_annuels
-profit_mensuel = profit_annuel / 12
+# Profit réel total
+profit_total_annuel = revenus_annuels - commissions - frais_menage - charges_fixes_annuelles - interets_annuels
+profit_total_mensuel = profit_total_annuel / 12
 
 # --- AFFICHAGE ---
-
 col1, col2 = st.columns(2)
 with col1:
     st.metric("Revenu Brut Annuel", f"{revenus_annuels:,.0f} €".replace(",", " "))
 with col2:
-    # Ce chiffre réagira désormais à vos changements de TO et d'ADR
-    st.metric("Profit Global Mensuel Net", f"{profit_mensuel:,.0f} €".replace(",", " "), delta=f"{to}% d'occupation")
+    st.metric("Profit Global Mensuel Net", f"{profit_total_mensuel:,.0f} €".replace(",", " "), delta=f"{to}% d'occ.")
 
 st.markdown("---")
-
 st.write("### 📈 Analyse de Performance")
-st.write(f"Ce profit est calculé après paiement de **{interets_annuels/12:,.0f} €/mois** d'intérêts bancaires.")
+st.write(f"Ce montant est le surplus après paiement des intérêts de **{interets_annuels/12:,.0f} €/mois**.")
 
 # Point d'équilibre dynamique
 marge_par_nuit = adr * 0.75 - 35
@@ -60,8 +53,8 @@ points_morts_charges = charges_fixes_annuelles + interets_annuels
 seuil_to = (points_morts_charges / marge_par_nuit / 365 * 100) if marge_par_nuit > 0 else 100
 
 if to >= seuil_to:
-    st.success(f"Projet auto-financé. Seuil de rentabilité : **{seuil_to:.1f}%** d'occupation.")
+    st.success(f"Projet rentable. Seuil d'équilibre : **{seuil_to:.1f}%** d'occupation.")
 else:
-    st.error(f"Déficit d'exploitation. Seuil requis : **{seuil_to:.1f}%**.")
+    st.error(f"Déficit. Seuil requis : {seuil_to:.1f}%.")
 
-[cite_start]st.info(f"💡 Note : Vos **80 000 €** de liquidités couvrent **4,6 années** de service de dette sans aucun loyer[cite: 219, 324].")
+st.info(f"💡 Rappel : Vos **80 000 €** couvrent le service de dette pendant **4,6 ans** sans loyer.")
