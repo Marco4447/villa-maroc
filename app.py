@@ -1,16 +1,27 @@
 import streamlit as st
 
-# 1. CONFIGURATION (Doit être la première ligne)
+# 1. CONFIGURATION (Première ligne obligatoire)
 st.set_page_config(page_title="Audit Villa Maroc", layout="wide")
 
-# 2. DESIGN & SUPPRESSION DES MENTIONS STREAMLIT (White Label)
+# 2. DESIGN PRO & SUPPRESSION TOTALE STREAMLIT (White Label)
 st.markdown("""
     <style>
+    /* Masquer le menu, le header et le footer */
+    #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
-    #MainMenu {visibility: hidden !important;}
+    
+    /* Masquer spécifiquement la mention 'Built with Streamlit' et la barre de status */
     .stAppDeployButton {display: none !important;}
-    .block-container {padding-top: 0rem !important; padding-bottom: 0rem !important;}
+    div[data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    
+    /* Supprimer l'espace vide en bas de page */
+    .main .block-container {
+        padding-bottom: 0rem !important;
+    }
+
+    /* Style global Sombre & Or */
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     h1, h2, h3 { color: #D4AF37 !important; font-family: 'serif'; }
     div[data-testid="stMetric"] { 
@@ -46,9 +57,8 @@ with st.sidebar:
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100)
 
-# 4. FONCTION FISCALE MAROC
+# 4. CALCULS (Logique itérative blindée)
 def calculer_tout(taux_occ, adr_val, m_pret_val, tx_pret_val, ans_val, type_p):
-    # Crédit
     if type_p == "In Fine":
         mens = (m_pret_val * (tx_pret_val / 100)) / 12
     else:
@@ -56,7 +66,6 @@ def calculer_tout(taux_occ, adr_val, m_pret_val, tx_pret_val, ans_val, type_p):
         nm = ans_val * 12
         mens = m_pret_val * (tm / (1 - (1 + tm)**-nm)) if tm > 0 else m_pret_val / nm
     
-    # Exploitation
     ca = 365 * (taux_occ / 100) * adr_val
     c_fixes = taxe_fonciere_an + (energie_mois + menage_mois + jardin_mois + fixes_mois) * 12
     
@@ -70,10 +79,10 @@ def calculer_tout(taux_occ, adr_val, m_pret_val, tx_pret_val, ans_val, type_p):
     profit = (ca - total_frais) / 12
     return ca, profit, mens, imp
 
-# 5. CALCULS ACTUELS ET SEUIL RÉEL
+# Calculs actuels
 ca_actuel, profit_actuel, mens_actuel, imp_actuel = calculer_tout(to, adr, m_pret, tx_annuel, ans, type_pret)
 
-# Recherche du seuil (Point Mort)
+# Recherche du seuil réel (Point Mort)
 occ_seuil = 0
 for test_o in range(0, 101):
     _, p_test, _, _ = calculer_tout(test_o, adr, m_pret, tx_annuel, ans, type_pret)
@@ -81,7 +90,7 @@ for test_o in range(0, 101):
         occ_seuil = test_o
         break
 
-# 6. AFFICHAGE
+# 5. AFFICHAGE DES RÉSULTATS
 c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("CA Annuel Estimé", f"{int(ca_actuel)} €")
