@@ -90,4 +90,21 @@ col_flux1, col_flux2 = st.columns(2)
 with col_flux1:
     st.subheader("📝 Analyse des Flux (Mensuel)")
     st.write(f"• Chiffre d'Affaires : **{int(rev_brut_m)} €**")
-    st.write(
+    st.write(f"• Conciergerie ({com_concierge_pct}%) : **-{int(frais_concierge)} €**")
+    st.write(f"• Frais Airbnb ({com_airbnb_pct}%) : **-{int(frais_airbnb)} €**")
+    st.write(f"• Charges Fixes : **-{int(f_fixes)} €**")
+    st.divider()
+    st.markdown(f"### Cash-Flow : **{int(profit_net)} € / mois**")
+
+with col_flux2:
+    st.subheader("🏁 Point d'Équilibre")
+    seuil_ca = (f_fixes + mens) / (1 - (com_concierge_pct + com_airbnb_pct + 10)/100)
+    occ_seuil = (seuil_ca / (adr * 30.5)) * 100
+    st.info(f"Équilibre atteint à **{int(occ_seuil)}%** d'occupation.")
+    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** par mois.")
+
+st.markdown("---")
+
+# Tableau d'amortissement interactif (Mise à jour image_11db82)
+st.subheader(f"📊 Tableau d'Amortissement Dynamique ({type_pret})")
+df_a = pd.DataFrame(tableau, columns=["
