@@ -1,9 +1,9 @@
 import streamlit as st
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PRO
+# 2. DESIGN PERSONNALISÉ (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -19,10 +19,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# 3. TITRE
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 3. BARRE LATÉRALE
+# 4. BARRE LATÉRALE (PARAMÈTRES COMPLETS)
 with st.sidebar:
     st.header("⚙️ Configuration")
     
@@ -33,8 +34,8 @@ with st.sidebar:
         ans = st.slider("Durée du crédit (ans)", 1, 25, 15)
 
     with st.expander("📅 Revenus Locatifs", expanded=True):
-        # Double saisie : Manuelle + Curseur
-        adr = st.number_input("Prix Nuitée (€) - Saisie manuelle", value=500, step=10)
+        # Saisie manuelle demandée
+        adr = st.number_input("Prix Nuitée (€)", value=500, step=10)
         to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
     with st.expander("💸 Détail des Frais Villa", expanded=True):
@@ -48,20 +49,47 @@ with st.sidebar:
         entretien_jardin = st.number_input("Entretien Jardin & Piscine (€)", value=2400, step=100)
         autres_fixes = st.number_input("Assurances & Internet (€)", value=1200, step=100)
 
-# 4. CALCULS
+# 5. LOGIQUE DE CALCUL
+# Calcul bancaire
 mensu_int = (m_pret * (tx / 100)) / 12
+
+# Calcul exploitation
 nuits = 365 * (to / 100)
 ca_annuel = nuits * adr
 
+# Ventilation des frais
 frais_concierge = ca_annuel * (com_concierge / 100)
 frais_variables_tot = nuits * (frais_energie_nuit + menage_nuit)
-total_fixes = taxe_hab + entretien_jardin + avec_fixes = 1200 # Valeur par défaut
 total_fixes = taxe_hab + entretien_jardin + autres_fixes
 total_charges = frais_concierge + frais_variables_tot + total_fixes
 
+# Profit net mensuel
 profit_mensuel = (ca_annuel - total_charges - (mensu_int * 12)) / 12
 
-# 5. KPI (Affichage sans virgules)
+# 6. AFFICHAGE DES RÉSULTATS (KPI)
+# Formatage sans virgules via int() et suppression du séparateur de milliers
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("Chiffre d'Affaires
+    st.metric("Chiffre d'Affaires Annuel", f"{int(ca_annuel)} €")
+with c2:
+    st.metric("Profit Net Mensuel", f"{int(profit_mensuel)} €")
+with c3:
+    renta = (profit_mensuel * 12 / apport * 100) if apport > 0 else 0
+    st.metric("Rendement / Apport", f"{renta:.1f} %")
+
+st.markdown("---")
+
+# 7. RÉCAPITULATIF TECHNIQUE (Sans virgules)
+col_a, col_b = st.columns(2)
+with col_a:
+    st.subheader("📊 Détail des Charges Annuelles")
+    st.write(f"Conciergerie ({com_concierge}%) : **{int(frais_concierge)} €**")
+    st.write(f"Énergie & Ménage : **{int(frais_variables_tot)} €**")
+    st.write(f"Taxes & Entretien Fixe : **{int(total_fixes)} €**")
+    st.write(f"**Total Charges : {int(total_charges)} €/an**")
+    
+with col_b:
+    st.subheader("🏦 Détails Bancaires")
+    st.write(f"Mensualité (Intérêts seuls) : **{int(mensu_int)} €/mois**")
+    st.write(f"Coût total des intérêts : **{int(mensu_int * 12 * ans)} €**")
+    st.write(f"Capital dû au terme : **{int(m_pret)} €**")
