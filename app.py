@@ -22,7 +22,7 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 3. BARRE LATÉRALE (PARAMÈTRES)
+# 3. BARRE LATÉRALE (PARAMÈTRES COMPLETS)
 with st.sidebar:
     st.header("⚙️ Configuration")
     
@@ -59,4 +59,9 @@ else:
     cout_total_credit = (mensualite_totale * n) - m_pret
 
 # 5. CALCULS EXPLOITATION
-nuits_an = 365
+nuits_an = 365 * (to / 100)
+ca_an = nuits_an * adr
+
+# Ventilation des charges
+frais_gestion_an = ca_an * (com_concierge / 100)
+frais_
