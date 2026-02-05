@@ -31,7 +31,6 @@ with st.sidebar:
 
     with st.expander("💸 Structure des Charges", expanded=True):
         f_fixes = st.number_input("Charges Fixes / mois (€)", value=1650)
-        # On regroupe tout ici : Conciergerie + Plateforme + Energie variable
         c_vars_pct = st.slider("Total Charges Variables (% du CA)", 10, 50, 30)
         statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
 
@@ -77,29 +76,37 @@ impot_m = get_impot(rev_brut_mois, statut)
 profit_m = rev_brut_mois - montant_c_vars - f_fixes - mens - impot_m
 
 # 4. AFFICHAGE ÉCRAN PRINCIPAL
-st.title("🏰 Audit de Rentabilité Financière")
+st.title("🏰 Audit de Performance Immobilière")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Profit Net / Mois", f"{int(profit_m)} €")
-with col2:
-    st.metric("Mensualité Crédit", f"{int(mens)} €")
-with col3:
-    st.metric("Intérêts Totaux", f"{int(total_int)} €")
+# --- NOUVEAU BANDEAU DE PERFORMANCE ANNUELLE ---
+st.subheader("📊 Résumé de Performance Annuelle")
+c1, c2, c3, c4 = st.columns(4)
+
+with c1:
+    st.metric("Chiffre d'Affaires", f"{int(rev_brut_mois * 12)} €", help="Total des revenus bruts sur l'année")
+with c2:
+    color = "normal" if profit_m > 0 else "inverse"
+    st.metric("Cash-Flow Net", f"{int(profit_m * 12)} €", delta=f"{int(profit_m)} €/mois", delta_color=color)
+with c3:
+    rendement = ((profit_m * 12) / m_pret) * 100 if m_pret > 0 else 0
+    st.metric("Rendement Net", f"{rendement:.2f} %", help="Rentabilité annuelle réelle après toutes charges et crédit")
+with c4:
+    st.metric("Coût du Crédit", f"{int(total_int)} €", help="Total des intérêts payés sur 15 ans")
 
 st.markdown("---")
 
-c1, c2 = st.columns(2)
-with c1:
-    st.subheader("📊 Flux de Trésorerie")
+# 5. DÉTAILS ET SEUIL
+col_d1, col_d2 = st.columns(2)
+with col_d1:
+    st.subheader("📝 Analyse des Flux Mensuels")
     st.write(f"• Revenu Brut : **{int(rev_brut_mois)} €**")
     st.write(f"• Charges Variables ({c_vars_pct}%) : **-{int(montant_c_vars)} €**")
     st.write(f"• Charges Fixes : **-{int(f_fixes)} €**")
-    st.write(f"• Impôt Estimé : **-{int(impot_m)} €**")
+    st.write(f"• Échéance Banque : **-{int(mens)} €**")
+    st.write(f"• Impôt Estimé ({statut}) : **-{int(impot_m)} €**")
 
-with c2:
-    st.subheader("🏁 Point d'Équilibre")
-    # Recherche du seuil
+with col_d2:
+    st.subheader("🏁 Seuil de Rentabilité")
     occ_seuil = 0
     for t_occ in range(0, 101):
         t_rev = adr * 30.5 * (t_occ / 100)
@@ -108,9 +115,11 @@ with c2:
             occ_seuil = t_occ
             break
     st.info(f"Équilibre à **{occ_seuil}%** d'occupation.")
-    st.write(f"Soit **{int(30.5 * occ_seuil / 100)} nuits** / mois à {adr} €.")
+    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** louées par mois.")
 
 st.markdown("---")
-st.subheader("📅 Tableau d'Amortissement")
+
+# 6. TABLEAU D'AMORTISSEMENT
+st.subheader(f"📅 Amortissement détaillé ({type_pret})")
 df_a = pd.DataFrame(tableau, columns=["Mois", "Échéance", "Principal", "Intérêts", "Restant"])
 st.dataframe(df_a, use_container_width=True, height=400, hide_index=True)
