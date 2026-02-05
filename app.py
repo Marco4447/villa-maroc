@@ -1,9 +1,9 @@
 import streamlit as st
 
-# 1. CONFIGURATION DE LA PAGE
+# 1. CONFIGURATION
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PERSONNALISÉ (Sombre & Or)
+# 2. DESIGN (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -19,11 +19,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TITRE
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (PARAMÈTRES COMPLETS)
+# 3. BARRE LATÉRALE
 with st.sidebar:
     st.header("⚙️ Configuration")
     
@@ -34,62 +33,75 @@ with st.sidebar:
         ans = st.slider("Durée du crédit (ans)", 1, 25, 15)
 
     with st.expander("📅 Revenus Locatifs", expanded=True):
-        # Saisie manuelle demandée
         adr = st.number_input("Prix Nuitée (€)", value=500, step=10)
         to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
-    with st.expander("💸 Détail des Frais Villa", expanded=True):
-        st.subheader("Charges Variables")
+    with st.expander("💸 Frais Villa (Mensuels & Annuels)", expanded=True):
+        st.subheader("Charges Variables (Moyennes)")
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
-        frais_energie_nuit = st.number_input("Eau & Électricité / nuit (€)", value=15, step=5)
-        menage_nuit = st.number_input("Ménage & Blanchisserie / nuit (€)", value=35, step=5)
+        # Saisie mensuelle demandée
+        energie_mois = st.number_input("Eau & Elec / mois moyen (€)", value=450, step=50)
+        menage_mois = st.number_input("Ménage & Blanchisserie / mois (€)", value=1000, step=100)
         
         st.subheader("Charges Fixes")
-        taxe_hab = st.number_input("Taxe Habitation & Foncière (€)", value=3000, step=100)
-        entretien_jardin = st.number_input("Entretien Jardin & Piscine (€)", value=2400, step=100)
-        autres_fixes = st.number_input("Assurances & Internet (€)", value=1200, step=100)
+        # Saisie annuelle
+        taxe_an = st.number_input("Taxe Habitation & Foncière / an (€)", value=3000, step=100)
+        # Saisie mensuelle
+        jardin_mois = st.number_input("Entretien Jardin & Piscine / mois (€)", value=200, step=50)
+        autres_fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
 
-# 5. LOGIQUE DE CALCUL
-# Calcul bancaire
+# 4. CALCULS (Conversion automatique en annuel)
+nuits_an = 365 * (to / 100)
+ca_annuel = nuits_an * adr
+
+# Frais convertis en annuel
+frais_concierge_an = ca_annuel * (com_concierge / 100)
+frais_variables_an = (energie_mois * 12) + (menage_mois * 12)
+frais_fixes_an = taxe_an + (jardin_mois * 12) + (autres_fixes_mois * 12)
+
+total_charges_an = frais_concierge_an + frais_variables_an + frais_fixes_an
 mensu_int = (m_pret * (tx / 100)) / 12
 
-# Calcul exploitation
-nuits = 365 * (to / 100)
-ca_annuel = nuits * adr
+# Profit net
+profit_annuel = ca_annuel - total_charges_an - (mensu_int * 12)
+profit_mensuel = profit_annuel / 12
 
-# Ventilation des frais
-frais_concierge = ca_annuel * (com_concierge / 100)
-frais_variables_tot = nuits * (frais_energie_nuit + menage_nuit)
-total_fixes = taxe_hab + entretien_jardin + autres_fixes
-total_charges = frais_concierge + frais_variables_tot + total_fixes
-
-# Profit net mensuel
-profit_mensuel = (ca_annuel - total_charges - (mensu_int * 12)) / 12
-
-# 6. AFFICHAGE DES RÉSULTATS (KPI)
-# Formatage sans virgules via int() et suppression du séparateur de milliers
+# 5. KPI (Affichage sans virgules)
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("Chiffre d'Affaires Annuel", f"{int(ca_annuel)} €")
+    st.metric("CA Annuel", f"{int(ca_annuel)} €")
 with c2:
     st.metric("Profit Net Mensuel", f"{int(profit_mensuel)} €")
 with c3:
-    renta = (profit_mensuel * 12 / apport * 100) if apport > 0 else 0
+    renta = (profit_annuel / apport * 100) if apport > 0 else 0
     st.metric("Rendement / Apport", f"{renta:.1f} %")
 
 st.markdown("---")
 
-# 7. RÉCAPITULATIF TECHNIQUE (Sans virgules)
-col_a, col_b = st.columns(2)
-with col_a:
-    st.subheader("📊 Détail des Charges Annuelles")
-    st.write(f"Conciergerie ({com_concierge}%) : **{int(frais_concierge)} €**")
-    st.write(f"Énergie & Ménage : **{int(frais_variables_tot)} €**")
-    st.write(f"Taxes & Entretien Fixe : **{int(total_fixes)} €**")
-    st.write(f"**Total Charges : {int(total_charges)} €/an**")
-    
-with col_b:
-    st.subheader("🏦 Détails Bancaires")
-    st.write(f"Mensualité (Intérêts seuls) : **{int(mensu_int)} €/mois**")
-    st.write(f"Coût total des intérêts : **{int(mensu_int * 12 * ans)} €**")
-    st.write(f"Capital dû au terme : **{int(m_pret)} €**")
+# 6. RÉCAPITULATIF (Tableau comparatif Mois / An)
+st.subheader("📊 Tableau des Charges")
+col_table1, col_table2 = st.columns(2)
+
+with col_table1:
+    st.write("**Postes de dépenses**")
+    st.write("- Conciergerie (variable) :")
+    st.write("- Énergie (Eau/Elec) :")
+    st.write("- Ménage & Linge :")
+    st.write("- Taxes :")
+    st.write("- Entretien Jardin/Piscine :")
+    st.write("- Assurances & Fixes :")
+    st.write("**TOTAL DES CHARGES :**")
+
+with col_table2:
+    st.write("**Montant Annuel**")
+    st.write(f"{int(frais_concierge_an)} €")
+    st.write(f"{int(energie_mois * 12)} €")
+    st.write(f"{int(menage_mois * 12)} €")
+    st.write(f"{int(taxe_an)} €")
+    st.write(f"{int(jardin_mois * 12)} €")
+    st.write(f"{int(autres_fixes_mois * 12)} €")
+    st.write(f"**{int(total_charges_an)} €**")
+
+st.markdown("---")
+st.subheader("🏦 Rappel Crédit In Fine")
+st.write(f"Mensualité intérêts : **{int(mensu_int)} €/mois** | Capital dû au terme : **{int(m_pret)} €**")
