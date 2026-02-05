@@ -3,7 +3,7 @@ import streamlit as st
 # 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PERSONNALISÉ (Sombre & Or)
+# 2. DESIGN (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -23,7 +23,7 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (PARAMÈTRES DYNAMIQUES)
+# 4. BARRE LATÉRALE (TOUS LES RÉGLAGES)
 with st.sidebar:
     st.header("⚙️ Paramètres")
     
@@ -43,15 +43,22 @@ with st.sidebar:
         menage = st.number_input("Ménage / nuit (€)", value=35, step=5)
 
 # 5. LOGIQUE DE CALCUL
-# Calcul bancaire
+# Partie Bancaire
 mensu_int = (m_pret * (tx / 100)) / 12
 tot_int = mensu_int * 12 * ans
 
-# Calcul exploitation
+# Partie Exploitation
 nuits = 365 * (to / 100)
 ca = nuits * adr
 frais_var = (ca * (com / 100)) + (nuits * menage)
 total_charges = frais_var + fixe
 profit_mensuel = (ca - total_charges - (mensu_int * 12)) / 12
 
-# 6. AFFICHAGE DES RÉSULT
+# 6. AFFICHAGE DES RÉSULTATS (KPI)
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.metric("Chiffre d'Affaires Annuel", f"{int(ca):,} €".replace(",", " "))
+with c2:
+    st.metric("Profit Net Mensuel", f"{int(profit_mensuel):,} €".replace(",", " "))
+with c3:
+    renta = (profit_mensuel * 12 / apport * 100) if apport >
