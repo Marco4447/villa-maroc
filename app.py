@@ -1,9 +1,9 @@
 import streamlit as st
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PRO (Sombre & Or)
+# 2. DESIGN PERSONNALISÉ (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -23,20 +23,35 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (RÉGLAGES)
+# 4. BARRE LATÉRALE (PARAMÈTRES DYNAMIQUES)
 with st.sidebar:
     st.header("⚙️ Paramètres")
     
     with st.expander("🏦 Financement (Prêt In Fine)", expanded=True):
-        mont_pret = st.number_input("Montant emprunté (€)", value=470000, step=5000)
+        m_pret = st.number_input("Montant emprunté (€)", value=470000, step=5000)
         apport = st.number_input("Apport injecté (€)", value=200000, step=5000)
         tx = st.number_input("Taux annuel (%)", value=3.70, step=0.05)
         ans = st.slider("Durée du crédit (ans)", 1, 25, 15)
 
     with st.expander("📅 Performance Villa", expanded=True):
         adr = st.slider("Prix Nuitée (€)", 200, 2000, 500, 25)
-        to = st.slider("Occupation (%)", 0, 100, 45, step=1)
+        to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
     with st.expander("💸 Charges & Frais", expanded=False):
-        fixe = st.number_input("Frais fixes annuelles (€)", value=14000, step=500)
-        com = st.slider("
+        fixe = st.number_input("Frais fixes annuels (€)", value=14000, step=500)
+        com = st.slider("Gestion (%)", 0, 40, 25)
+        menage = st.number_input("Ménage / nuit (€)", value=35, step=5)
+
+# 5. LOGIQUE DE CALCUL
+# Calcul bancaire
+mensu_int = (m_pret * (tx / 100)) / 12
+tot_int = mensu_int * 12 * ans
+
+# Calcul exploitation
+nuits = 365 * (to / 100)
+ca = nuits * adr
+frais_var = (ca * (com / 100)) + (nuits * menage)
+total_charges = frais_var + fixe
+profit_mensuel = (ca - total_charges - (mensu_int * 12)) / 12
+
+# 6. AFFICHAGE DES RÉSULT
