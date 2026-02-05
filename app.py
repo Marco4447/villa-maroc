@@ -34,11 +34,9 @@ with st.sidebar:
         to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
     with st.expander("💸 Frais Villa (Mensuels)", expanded=True):
-        st.subheader("Charges Variables")
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
         energie_mois = st.number_input("Eau & Elec / mois (€)", value=450, step=50)
         menage_mois = st.number_input("Ménage / mois (€)", value=1000, step=100)
-        st.subheader("Charges Fixes")
         taxe_fonciere_an = st.number_input("Taxe Foncière / an (€)", value=3000, step=100)
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200, step=50)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
@@ -53,48 +51,44 @@ else:
 
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
-charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_mois * 12) + (fixes_mois * 12)
+frais_gestion_an = ca_an * (com_concierge / 100)
+charges_fixes_an = taxe_fonciere_an + (energie_mois + menage_mois + jardin_mois + fixes_mois) * 12
+total_charges_an = frais_gestion_an + charges_fixes_an
 
-# 5. CALCUL IMPOTS MAROC
+# 5. FISCALITÉ MAROC
 base_imposable = ca_an * 0.60
-if base_imposable <= 3000:
-    impot_an = 0
-elif base_imposable <= 5000:
-    impot_an = (base_imposable * 0.10) - 300
-elif base_imposable <= 6000:
-    impot_an = (base_imposable * 0.20) - 800
-elif base_imposable <= 8000:
-    impot_an = (base_imposable * 0.30) - 1400
-elif base_imposable <= 18000:
-    impot_an = (base_imposable * 0.34) - 1720
-else:
-    impot_an = (base_imposable * 0.38) - 2440
+if base_imposable <= 3000: impot_an = 0
+elif base_imposable <= 5000: impot_an = (base_imposable * 0.10) - 300
+elif base_imposable <= 6000: impot_an = (base_imposable * 0.20) - 800
+elif base_imposable <= 8000: impot_an = (base_imposable * 0.30) - 1400
+elif base_imposable <= 18000: impot_an = (base_imposable * 0.34) - 1720
+else: impot_an = (base_imposable * 0.38) - 2440
 
-tx_impot_reel = (impot_an / ca_an * 100) if ca_an > 0 else 0
-profit_mensuel_net = (ca_an - charges_an - (mensualite * 12) - impot_an) / 12
+profit_mensuel_net = (ca_an - total_charges_an - (mensualite * 12) - impot_an) / 12
 
-# 6. KPI PRINCIPAUX
+# 6. SEUIL DE RENTABILITÉ (BREAK-EVEN)
+# Calcul simplifié du CA nécessaire pour couvrir charges fixes + crédit
+marge_brute_taux = 1 - (com_concierge / 100)
+seuil_ca_an = (charges_fixes_an + (mensualite * 12)) / marge_brute_taux
+
+# 7. AFFICHAGE ÉCRAN PRINCIPAL
 c1, c2, c3 = st.columns(3)
 with c1:
-    st.metric("CA Annuel", f"{int(ca_an)} €")
+    st.metric("Chiffre d'Affaires Estimé", f"{int(ca_an)} €")
 with c2:
-    st.metric("Net Mensuel", f"{int(profit_mensuel_net)} €")
+    st.metric("Profit Mensuel (Net de Net)", f"{int(profit_mensuel_net)} €")
 with c3:
     renta = (profit_mensuel_net * 12 / apport * 100) if apport > 0 else 0
     st.metric("Rendement / Apport", f"{renta:.1f} %")
 
 st.markdown("---")
 
-# 7. RÉCAPITULATIF
-col_a, col_b = st.columns(2)
-with col_a:
-    st.subheader("🇲🇦 Impôts Maroc")
-    st.write(f"Revenu Brut annuel : **{int(ca_an)} €**")
-    st.write(f"Base taxable (Abattement 40%) : **{int(base_imposable)} €**")
-    st.error(f"Montant annuel des impôts : **{int(impot_an)} €**")
-    st.info(f"Taux d'impôt effectif : **{tx_impot_reel:.1f} % du CA**")
-
-with col_b:
-    st.subheader(f"🏦 Détails Crédit {type_pret}")
-    st.write(f"Mensualité : **{int(mensualite)} €/mois**")
-    st.write(f"Capital dû au terme : **{int(m_pret if type_pret == 'In Fine' else 0)} €**")
+col_res1, col_res2 = st.columns(2)
+with col_res1:
+    st.subheader("📊 Performance Détaillée")
+    st.write(f"• Total Charges Annuelles : **{int(total_charges_an)} €**")
+    st.write(f"• Impôts Maroc estimés : **{int(impot_an)} €**")
+    st.write(f"• Taux d'occupation actuel : **{to} %**")
+    
+with col_res2:
+    st.subheader("🏁 Seuil de Rent
