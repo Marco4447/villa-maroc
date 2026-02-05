@@ -22,7 +22,8 @@ st.markdown("---")
 # 3. BARRE LATÉRALE
 with st.sidebar:
     st.header("⚙️ Configuration")
-    with st.expander("🏦 Financement", expanded=False):
+    
+    with st.expander("🏦 Financement", expanded=True):
         type_pret = st.radio("Type de crédit", ["In Fine", "Amortissable"])
         m_pret = st.number_input("Montant emprunté (€)", value=470000, step=5000)
         apport = st.number_input("Apport personnel (€)", value=200000, step=5000)
@@ -38,12 +39,14 @@ with st.sidebar:
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
         energie_mois = st.number_input("Eau & Elec / mois (€)", value=450, step=50)
         menage_mois = st.number_input("Ménage / mois (€)", value=1000, step=100)
+        
         st.subheader("Charges Fixes")
         taxe_fonciere_an = st.number_input("Taxe Foncière / an (€)", value=3000, step=100)
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200, step=50)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
 
 # 4. CALCULS FINANCIERS
+# Crédit
 if type_pret == "In Fine":
     mensualite = m_pret * (tx_annuel / 100 / 12)
 else:
@@ -51,6 +54,28 @@ else:
     n = ans * 12
     mensualite = m_pret * (t / (1 - (1 + t)**-n)) if t > 0 else m_pret / n
 
+# Exploitation
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
-charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_
+charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_mois * 12) + (fixes_mois * 12)
+
+# 5. CALCUL IMPOTS MAROC (Revenus Fonciers)
+base_imposable = ca_an * 0.60
+if base_imposable <= 3000:
+    impot_an = 0
+elif base_imposable <= 5000:
+    impot_an = (base_imposable * 0.10) - 300
+elif base_imposable <= 6000:
+    impot_an = (base_imposable * 0.20) - 800
+elif base_imposable <= 8000:
+    impot_an = (base_imposable * 0.30) - 1400
+elif base_imposable <= 18000:
+    impot_an = (base_imposable * 0.34) - 1720
+else:
+    impot_an = (base_imposable * 0.38) - 2440
+
+tx_impot_reel = (impot_an / ca_an * 100) if ca_an > 0 else 0
+profit_mensuel_net = (ca_an - charges_an - (mensualite * 12) - impot_an) / 12
+
+# 6. KPI PRINCIPAUX
+c1, c2, c3 = st
