@@ -1,18 +1,13 @@
 import streamlit as st
 
-# 1. CONFIGURATION (Doit impérativement être la première commande)
-st.set_page_config(page_title="Audit Rentabilité Villa", layout="wide")
+# 1. CONFIGURATION DE LA PAGE
+st.set_page_config(page_title="Audit Rentabilité Villa Marrakech", layout="wide")
 
-# 2. DESIGN & WHITE LABEL (Masquage du menu et footer Streamlit)
+# 2. DESIGN PERSONNALISÉ (OR ET NOIR)
 st.markdown("""
     <style>
-    /* Masquer l'interface Streamlit pour l'intégration */
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    .stAppDeployButton {display: none;}
-    
-    /* Couleurs personnalisées Or et Sombre */
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     h1, h2, h3 { color: #D4AF37 !important; font-family: 'serif'; }
     div[data-testid="stMetric"] { 
@@ -20,24 +15,46 @@ st.markdown("""
         padding: 15px; border-radius: 10px; text-align: center;
     }
     div[data-testid="stMetricValue"] > div { color: #D4AF37 !important; }
+    .stSelectSlider [data-baseweb="slider"] { color: #D4AF37; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏰 Audit de rentabilité complet de votre Villa")
+st.title("🏰 Audit de Rentabilité & Pricing Dynamique")
 st.markdown("---")
 
 # 3. BARRE LATÉRALE (CONFIGURATION)
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("⚙️ Paramètres")
+    
     with st.expander("🏦 Financement", expanded=False):
         type_pret = st.radio("Type de crédit", ["In Fine", "Amortissable"])
         m_pret = st.number_input("Montant emprunté (€)", value=470000)
         tx_annuel = st.number_input("Taux annuel (%)", value=3.70)
         ans = st.slider("Durée du crédit (ans)", 1, 25, 15)
 
-    with st.expander("📅 Revenus Locatifs", expanded=True):
-        adr = st.number_input("Prix Nuitée (€)", value=430)
-        to = st.slider("Occupation (%)", 0, 100, 41)
+    with st.expander("📅 Saisonnalité & Revenus", expanded=True):
+        mois_choisi = st.select_slider(
+            "Mois de l'année",
+            options=["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"],
+            value="Avril"
+        )
+        
+        # Logique de Pricing Dynamique
+        if mois_choisi in ["Déc", "Avril", "Mai", "Oct"]:
+            coeff = 1.3  # Haute saison
+            saison_txt = "🏷️ Haute Saison (+30%)"
+        elif mois_choisi in ["Juil", "Août", "Janv"]:
+            coeff = 0.8  # Basse saison
+            saison_txt = "🏷️ Basse Saison (-20%)"
+        else:
+            coeff = 1.0
+            saison_txt = "🏷️ Saison Standard"
+            
+        adr_base = st.number_input("Prix Nuitée de base (€)", value=430)
+        adr_actuel = adr_base * coeff
+        st.info(f"{saison_txt} : **{int(adr_actuel)} €** / nuit")
+        
+        to = st.slider("Taux d'occupation (%)", 0, 100, 41)
         
     with st.expander("💸 Frais Villa (Mensuels)", expanded=True):
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 20)
@@ -47,65 +64,83 @@ with st.sidebar:
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100)
 
-# 4. CALCULS DE BASE (CORRIGÉS)
+# 4. CALCULS FINANCIERS
+# Mensualité crédit
 if type_pret == "In Fine":
     mensualite = (m_pret * (tx_annuel / 100)) / 12
 else:
-    t_m = tx_annuel / 100 / 12
-    n_m = ans * 12
-    # Correction de la syntaxe if/else pour éviter l'erreur ligne 58
-    if t_m > 0:
-        mensualite = m_pret * (t_m / (1 - (1 + t_m)**-n_m))
+    tm = tx_annuel / 100 / 12
+    nm = ans * 12
+    if tm > 0:
+        mensualite = m_pret * (tm / (1 - (1 + tm)**-nm))
     else:
-        mensualite = m_pret / n_m
+        mensualite = m_pret / nm
 
-nuits_an = 365 * (to / 100)
-ca_an = nuits_an * adr
-charges_fixes_an = taxe_fonciere_an + (energie_mois + menage_mois + jardin_mois + fixes_mois) * 12
+# Revenus et Charges
+nuits_mois = 30.5 * (to / 100)
+ca_mois = nuits_mois * adr_actuel
+charges_fixes_mois = (taxe_fonciere_an / 12) + energie_mois + menage_mois + jardin_mois + fixes_mois
 
-# 5. FISCALITÉ DYNAMIQUE MAROC
-def calculer_impot(revenu_brut):
-    # Base taxable à 60% du CA
-    base = revenu_brut * 0.60
-    if base <= 3000: 
-        return 0
-    elif base <= 18000: 
-        return (base * 0.34) - 1720
-    else: 
-        return (base * 0.38) - 2440
+# Fiscalité Marocaine (Abattement 40% -> Base taxable 60%)
+def calculer_impot_mensuel(revenu_brut):
+    base_taxable = (revenu_brut * 12) * 0.60
+    if base_taxable <= 30000: # Seuil progressif simplifié
+        impot_an = 0
+    elif base_taxable <= 180000:
+        impot_an = (base_taxable * 0.34) - 17200
+    else:
+        impot_an = (base_taxable * 0.38) - 24400
+    return impot_an / 12
 
-impot_actuel = calculer_impot(ca_an)
-total_charges_an = (ca_an * com_concierge / 100) + charges_fixes_an + (mensualite * 12) + impot_actuel
-profit_mensuel = (ca_an - total_charges_an) / 12
+impot_mois = calculer_impot_mensuel(ca_mois)
+total_depenses_mois = (ca_mois * com_concierge / 100) + charges_fixes_mois + mensualite + impot_mois
+profit_mensuel = ca_mois - total_depenses_mois
 
-# 6. CALCUL DU SEUIL (Méthode itérative pour précision absolue)
+# 5. CALCUL DU POINT MORT (SEUIL DE RENTABILITÉ)
 occ_seuil = 0
 for test_occ in range(0, 101):
-    test_ca = 365 * (test_occ / 100) * adr
-    test_impot = calculer_impot(test_ca)
-    test_charges = (test_ca * com_concierge / 100) + charges_fixes_an + (mensualite * 12) + test_impot
-    if test_ca >= test_charges:
+    test_ca = 30.5 * (test_occ / 100) * adr_actuel
+    test_imp = calculer_impot_mensuel(test_ca)
+    test_ch = (test_ca * com_concierge / 100) + charges_fixes_mois + mensualite + test_imp
+    if test_ca >= test_ch:
         occ_seuil = test_occ
         break
 
-# 7. AFFICHAGE DES RÉSULTATS
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("CA Annuel Estimé", f"{int(ca_an)} €")
-with c2:
-    st.metric("Profit Net Mensuel", f"{int(profit_mensuel)} €")
-with c3:
+# 6. AFFICHAGE DES RÉSULTATS
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Revenu Mensuel", f"{int(ca_mois)} €")
+with col2:
+    color = "normal" if profit_mensuel > 0 else "inverse"
+    st.metric("Profit Net / Mois", f"{int(profit_mensuel)} €", delta=None, delta_color=color)
+with col3:
     st.metric("Mensualité Crédit", f"{int(mensualite)} €")
 
 st.markdown("---")
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("📊 Performance Détaillée")
-    st.write(f"• Impôts Maroc : **{int(impot_actuel)} €/an**")
-    st.write(f"• Total charges + crédit : **{int(total_charges_an)} €/an**")
 
-with col2:
-    st.subheader("🏁 Seuil de Rentabilité Réel")
-    st.write(f"• CA d'équilibre : **{int(365 * (occ_seuil / 100) * adr)} €/an**")
-    st.write(f"• Nuits minimum : **{int(365 * (occ_seuil / 100))} nuits/an**")
-    st.info(f"Occupation minimum requise : {occ_seuil} %")
+c1, c2 = st.columns(2)
+with c1:
+    st.subheader("📊 Détail des charges (mensuel)")
+    st.write(f"• Conciergerie : **{int(ca_mois * com_concierge / 100)} €**")
+    st.write(f"• Frais fixes (Entretien/Taxes) : **{int(charges_fixes_mois)} €**")
+    st.write(f"• Impôts Maroc (Estimé) : **{int(impot_mois)} €**")
+    st.write(f"• Remboursement crédit : **{int(mensualite)} €**")
+
+with c2:
+    st.subheader("🏁 Seuil de Rentabilité")
+    st.write(f"Pour ce prix ({int(adr_actuel)}€), l'équilibre est à :")
+    st.info(f"**{occ_seuil} % d'occupation**")
+    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** louées par mois.")
+
+# 7. GRAPHIQUE DE SAISONNALITÉ (OPTIONNEL)
+st.subheader("📈 Projection de Profit Annuelle")
+mois_list = ["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"]
+profits = []
+for m in mois_list:
+    c = 1.3 if m in ["Déc", "Avril", "Mai", "Oct"] else (0.8 if m in ["Juil", "Août", "Janv"] else 1.0)
+    rev = 30.5 * (to/100) * (adr_base * c)
+    imp = calculer_impot_mensuel(rev)
+    dep = (rev * com_concierge / 100) + charges_fixes_mois + mensualite + imp
+    profits.append(rev - dep)
+
+st.line_chart(profits)
