@@ -3,7 +3,7 @@ import streamlit as st
 # 1. CONFIGURATION
 st.set_page_config(page_title="Simulation Villa Maroc", layout="wide")
 
-# 2. DESIGN (Sombre & Or)
+# 2. DESIGN PRO
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -22,8 +22,7 @@ st.markdown("---")
 # 3. BARRE LATÉRALE
 with st.sidebar:
     st.header("⚙️ Configuration")
-    
-    with st.expander("🏦 Financement", expanded=True):
+    with st.expander("🏦 Financement", expanded=False):
         type_pret = st.radio("Type de crédit", ["In Fine", "Amortissable"])
         m_pret = st.number_input("Montant emprunté (€)", value=470000, step=5000)
         apport = st.number_input("Apport personnel (€)", value=200000, step=5000)
@@ -39,27 +38,24 @@ with st.sidebar:
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
         energie_mois = st.number_input("Eau & Elec / mois (€)", value=450, step=50)
         menage_mois = st.number_input("Ménage / mois (€)", value=1000, step=100)
-        
         st.subheader("Charges Fixes")
         taxe_fonciere_an = st.number_input("Taxe Foncière / an (€)", value=3000, step=100)
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200, step=50)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
 
 # 4. CALCULS FINANCIERS
-# Crédit
 if type_pret == "In Fine":
     mensualite = m_pret * (tx_annuel / 100 / 12)
 else:
     t = tx_annuel / 100 / 12
     n = ans * 12
-    mensualite = m_pret * (t / (1 - (1 + t)**-n)) if t > 0 else m_pret / n
+    mensualite = m_pret * (t / (1 - (1 + t)**-n)) if t > 0 else m_pret / (ans * 12)
 
-# Exploitation
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
 charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_mois * 12) + (fixes_mois * 12)
 
-# 5. CALCUL IMPOTS MAROC (Revenus Fonciers)
+# 5. CALCUL IMPOTS MAROC
 base_imposable = ca_an * 0.60
 if base_imposable <= 3000:
     impot_an = 0
@@ -78,4 +74,27 @@ tx_impot_reel = (impot_an / ca_an * 100) if ca_an > 0 else 0
 profit_mensuel_net = (ca_an - charges_an - (mensualite * 12) - impot_an) / 12
 
 # 6. KPI PRINCIPAUX
-c1, c2, c3 = st
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.metric("CA Annuel", f"{int(ca_an)} €")
+with c2:
+    st.metric("Net Mensuel", f"{int(profit_mensuel_net)} €")
+with c3:
+    renta = (profit_mensuel_net * 12 / apport * 100) if apport > 0 else 0
+    st.metric("Rendement / Apport", f"{renta:.1f} %")
+
+st.markdown("---")
+
+# 7. RÉCAPITULATIF
+col_a, col_b = st.columns(2)
+with col_a:
+    st.subheader("🇲🇦 Impôts Maroc")
+    st.write(f"Revenu Brut annuel : **{int(ca_an)} €**")
+    st.write(f"Base taxable (Abattement 40%) : **{int(base_imposable)} €**")
+    st.error(f"Montant annuel des impôts : **{int(impot_an)} €**")
+    st.info(f"Taux d'impôt effectif : **{tx_impot_reel:.1f} % du CA**")
+
+with col_b:
+    st.subheader(f"🏦 Détails Crédit {type_pret}")
+    st.write(f"Mensualité : **{int(mensualite)} €/mois**")
+    st.write(f"Capital dû au terme : **{int(m_pret if type_pret == 'In Fine' else 0)} €**")
