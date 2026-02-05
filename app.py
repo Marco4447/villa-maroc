@@ -1,10 +1,9 @@
 import streamlit as st
-import numpy as np
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PRO
+# 2. DESIGN PRO (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -23,7 +22,7 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 3. BARRE LATÉRALE
+# 3. BARRE LATÉRALE (PARAMÈTRES)
 with st.sidebar:
     st.header("⚙️ Configuration")
     
@@ -38,45 +37,26 @@ with st.sidebar:
         adr = st.number_input("Prix Nuitée (€)", value=500, step=10)
         to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
-    with st.expander("💸 Frais Villa (Mensuels)", expanded=True):
+    with st.expander("💸 Frais Villa (Par mois)", expanded=True):
+        st.subheader("Charges Variables")
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
         energie_mois = st.number_input("Eau & Elec / mois (€)", value=450, step=50)
         menage_mois = st.number_input("Ménage & Blanchisserie / mois (€)", value=1000, step=100)
+        
+        st.subheader("Charges Fixes")
         taxe_an = st.number_input("Taxe Foncière / an (€)", value=3000, step=100)
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200, step=50)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
 
 # 4. LOGIQUE DE CALCUL DU CRÉDIT
-t = tx_annuel / 100 / 12
-n = ans * 12
-
 if type_pret == "In Fine":
-    # On ne paie que les intérêts
     mensualite_totale = m_pret * (tx_annuel / 100 / 12)
-    part_interets = mensualite_totale
-    part_capital = 0
+    cout_total_credit = mensualite_totale * 12 * ans
 else:
-    # Formule annuité amortissable : M = P * [i / (1 - (1+i)^-n)]
+    t = tx_annuel / 100 / 12
+    n = ans * 12
     mensualite_totale = m_pret * (t / (1 - (1 + t)**-n))
-    # Moyenne simplifiée pour la simulation (la première mensualité)
-    part_interets = m_pret * t
-    part_capital = mensualite_totale - part_interets
+    cout_total_credit = (mensualite_totale * n) - m_pret
 
 # 5. CALCULS EXPLOITATION
-nuits_an = 365 * (to / 100)
-ca_an = nuits_an * adr
-charges_an = (ca_an * com_concierge / 100) + (energie_mois * 12) + (menage_mois * 12) + taxe_an + (jardin_mois * 12) + (fixes_mois * 12)
-
-# Cash-flow après TOUTES les charges et TOUTE la mensualité
-profit_annuel = ca_an - charges_an - (mensualite_totale * 12)
-profit_mensuel = profit_annuel / 12
-
-# 6. KPI
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("CA Annuel", f"{int(ca_an)} €")
-with c2:
-    st.metric("Cash-flow Net Mensuel", f"{int(profit_mensuel)} €")
-with c3:
-    renta = (profit_annuel / apport * 100) if apport > 0 else 0
-    st.metric("Rendement
+nuits_an = 365
