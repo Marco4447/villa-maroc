@@ -45,7 +45,6 @@ if type_pret == "Amortissable":
         total_int += int_m
         tableau.append([i, round(mens, 2), round(princ, 2), round(int_m, 2), round(max(0, cr), 2)])
 else:
-    # Logic In Fine : Intérêts constants, capital remboursé à la fin
     mens_int = m_pret * tm
     total_int = mens_int * nb_m
     for i in range(1, nb_m + 1):
@@ -62,12 +61,11 @@ mens_banque = m_pret * tm if type_pret == "In Fine" else (m_pret * (tm / (1 - (1
 
 def calcul_impot(r, s):
     if s == "Personne Physique":
-        base = (r * 12) * 0.60 # Abattement foncier 40%
+        base = (r * 12) * 0.60
         if base <= 30000: return 0
         elif base <= 180000: return ((base * 0.34) - 17200) / 12
         else: return ((base * 0.38) - 24400) / 12
     else:
-        # Simplification IS Maroc
         base = (r * 12) - (f_fixes * 12) - (mens_banque * 12)
         return (max(0, base) * 0.20) / 12
 
@@ -84,7 +82,6 @@ col3.metric("Total Intérêts Prêt", f"{int(total_int)} €")
 
 st.markdown("---")
 st.subheader(f"📊 Tableau d'Amortissement ({type_pret})")
-st.dataframe(df_amort, use_container_width=True, height=400)
 
-if type_pret == "In Fine":
-    st.warning(f"Note : Le crédit In Fine génère un total d'intérêts de {int(total_int)} € sur {ans} ans.")
+# AJOUT DE hide_index=True POUR ENLEVER LA COLONNE DE GAUCHE
+st.dataframe(
