@@ -11,31 +11,23 @@ st.set_page_config(
 # 2. DESIGN PERSONNALISÉ (CSS)
 st.markdown("""
     <style>
-    /* Fond sombre anthracite */
     .stApp {
         background-color: #0E1117;
         color: #E0E0E0;
     }
-    /* Titres en Or */
     h1, h2, h3 {
         color: #D4AF37 !important;
-        font-family: 'Playfair Display', serif;
+        font-family: 'serif';
     }
-    /* Cartes de résultats */
     div[data-testid="stMetric"] {
-        background-color: #1E1E1E;
+        background-color: #161B22;
         border: 1px solid #D4AF37;
         padding: 15px;
         border-radius: 10px;
         text-align: center;
     }
-    /* Couleur des chiffres metrics */
     div[data-testid="stMetricValue"] > div {
         color: #D4AF37 !important;
-    }
-    /* Sidebar style */
-    .css-1d391kg {
-        background-color: #161B22;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -47,7 +39,6 @@ st.markdown("---")
 
 # 4. BARRE LATÉRALE (INPUTS)
 with st.sidebar:
-    st.image("https://img.freepik.com/vecteurs-premium/logo-immobilier-luxe-maison-or_23-2148463214.jpg", width=100)
     st.header("⚙️ Configuration")
     
     with st.expander("💳 Financement In Fine", expanded=True):
@@ -56,20 +47,20 @@ with st.sidebar:
         taux_interet = st.number_input("Taux Crédit (%)", value=3.70, step=0.05)
     
     with st.expander("📅 Exploitation OpCo", expanded=True):
-        adr = st.slider("Prix Nuitée (ADR €)", 300, 1500, 435, step=25)
+        adr = st.slider("Prix Nuitée (ADR €)", 300, 1500, 500, step=25)
         to = st.slider("Occupation Annuelle (%)", 0, 100, 45, step=1)
 
-# 5. LOGIQUE DE CALCUL (Source : Rapport Pierre Valentin)
+# 5. LOGIQUE DE CALCUL
 nb_nuits = 365 * (to / 100)
 revenus_annuels = nb_nuits * adr
 
-# Charges OpCo & Personnel
-commissions = revenus_annuels * 0.25 # Conciergerie 20% + Plateformes 3% + Maint 2% [cite: 313]
-frais_menage = nb_nuits * 35 # 35€ par nuit louée [cite: 313]
-charges_fixes = 14000 # Syndic, Jardin, Assurance [cite: 313, 317]
+# Charges basées sur votre rapport
+commissions = revenus_annuels * 0.25 
+frais_menage = nb_nuits * 35 
+charges_fixes = 14000 
 
-montant_pret = prix_total - apport # [cite: 131, 339]
-interets_annuels = montant_pret * (taux_interet / 100) # [cite: 204, 927]
+montant_pret = prix_total - apport 
+interets_annuels = montant_pret * (taux_interet / 100) 
 
 # Performance Finale
 profit_global_annuel = revenus_annuels - commissions - frais_menage - charges_fixes - interets_annuels
@@ -95,24 +86,20 @@ c1, c2 = st.columns([2, 1])
 
 with c1:
     st.write("### 💎 Analyse du Montage")
-    st.write(f"""
-    Le projet repose sur un **crédit In Fine de {montant_pret:,.0f} €**[cite: 131, 339]. 
-    Le service de la dette s'élève à **{interets_annuels/12:,.0f} € / mois**[cite: 928, 929].
-    """)
+    st.write(f"Le projet repose sur un crédit In Fine de **{montant_pret:,.0f} €**. Le service de la dette s'élève à **{interets_annuels/12:,.0f} € / mois**.")
     
-    # Point d'équilibre
     marge_nuit = adr * 0.75 - 35
     seuil_to = ((charges_fixes + interets_annuels) / marge_nuit / 365 * 100) if marge_nuit > 0 else 0
     
     if to >= seuil_to:
-        st.success(f"✅ Seuil d'équilibre atteint à **{seuil_to:.1f}%** d'occupation.")
+        st.success(f"✅ Seuil d'équilibre atteint à {seuil_to:.1f}% d'occupation.")
     else:
         st.error(f"⚠️ Seuil d'équilibre non atteint (Requis : {seuil_to:.1f}%)")
 
 with c2:
     st.write("### 🛡️ Protection")
-    st.info(f"**Liquidités :** 80 000 €[cite: 80, 911].")
-    st.caption("Cette réserve couvre 4,6 ans de service de dette sans aucun loyer[cite: 220, 324].")
+    st.info(f"Liquidités : 80 000 €.")
+    st.caption("Cette réserve couvre 4,6 ans de service de dette sans aucun loyer.")
     st.write("**Bénéficiaires :**")
-    st.caption("Paul (Nue-propriété)[cite: 48, 60, 295, 338, 1184].")
-    st.caption("Emmanuelle (Réversion)[cite: 1185, 1186].")
+    st.markdown("- Paul (Nue-propriété)")
+    st.markdown("- Emmanuelle (Réversion)")
