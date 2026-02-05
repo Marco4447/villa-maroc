@@ -23,7 +23,7 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (PARAMÈTRES COMPLETS)
+# 4. BARRE LATÉRALE (PARAMÈTRES)
 with st.sidebar:
     st.header("⚙️ Paramètres du Projet")
     
@@ -61,3 +61,8 @@ profit_mensuel_net = profit_annuel_net / 12
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Chiffre d'Affaires Annuel", f"{int(ca_annuel):,} €".replace(",", " "))
+with col2:
+    st.metric("Profit Mensuel Net", f"{int(profit_mensuel_net):,} €".replace(",", " "))
+with col3:
+    renta_apport = (profit_annuel_net / apport_perso * 100) if apport_perso > 0 else 0
+    st.metric("Rendement / Apport", f"{renta_apport:.1f
