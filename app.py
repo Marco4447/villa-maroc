@@ -66,30 +66,4 @@ total_charges_an = frais_gestion_an + charges_fixes_an
 
 # 5. FISCALITÉ MAROC (Abattement 40%)
 base_taxable = ca_an * 0.60
-if base_taxable <= 3000:
-    impot_an = 0
-elif base_taxable <= 5000:
-    impot_an = (base_taxable * 0.10) - 300
-elif base_taxable <= 6000:
-    impot_an = (base_taxable * 0.20) - 800
-elif base_taxable <= 8000:
-    impot_an = (base_taxable * 0.30) - 1400
-elif base_taxable <= 18000:
-    impot_an = (base_taxable * 0.34) - 1720
-else:
-    impot_an = (base_taxable * 0.38) - 2440
-
-profit_mensuel = (ca_an - total_charges_an - (mensualite * 12) - impot_an) / 12
-
-# 6. SEUIL DE RENTABILITÉ (POINT MORT)
-marge_apres_concierge = 1 - (com_concierge / 100)
-seuil_ca_annuel = (charges_fixes_an + (mensualite * 12)) / marge_apres_concierge
-
-# 7. AFFICHAGE ÉCRAN PRINCIPAL
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("CA Annuel Estimé", str(int(ca_an)) + " €")
-with c2:
-    st.metric("Profit Net Mensuel", str(int(profit_mensuel)) + " €")
-with c3:
-    renta_apport = (profit_mensuel * 12 / apport * 100) if apport
+if base_
