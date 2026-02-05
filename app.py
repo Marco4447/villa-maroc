@@ -27,34 +27,38 @@ with st.sidebar:
     st.header("⚙️ Réglages")
     prix_total = st.slider("Investissement (€)", 500000, 1500000, 670000, 10000)
     apport = st.slider("Apport (€)", 0, 1000000, 200000, 10000)
-    taux = st.number_input("Taux Crédit (%)", value=3.70, step=0.05)
+    
     st.markdown("---")
+    st.subheader("🏦 Paramètres Crédit")
+    taux = st.number_input("Taux Crédit (%)", value=3.70, step=0.05)
+    duree_ans = st.number_input("Durée du prêt (années)", value=15, step=1)
+    
+    st.markdown("---")
+    st.subheader("📅 Exploitation")
     adr = st.slider("Prix Nuitée (€)", 300, 1500, 500, 25)
     to = st.slider("Occupation (%)", 0, 100, 45, 1)
 
 # 5. CALCULS
 pret = prix_total - apport
-interets_mensuels = (pret * (taux / 100)) / 12
+# Calcul In Fine : Intérêts = Capital x Taux
+interets_annuels = pret * (taux / 100)
+interets_mensuels = interets_annuels / 12
+total_interets_duree = interets_annuels * duree_ans
+
 ca_annuel = 365 * (to / 100) * adr
 charges_opco = (ca_annuel * 0.25) + (365 * (to / 100) * 35) + 14000
-profit_mensuel = (ca_annuel - charges_opco - (interets_mensuels * 12)) / 12
+profit_mensuel = (ca_annuel - charges_opco - interets_annuels) / 12
 
-# 6. AFFICHAGE DES RÉSULTATS
+# 6. AFFICHAGE DES RÉSULTATS (KPI)
 c1, c2, c3 = st.columns(3)
-c1.metric("Chiffre d'Affaires", f"{int(ca_annuel)} €")
-c2.metric("Profit Net Mensuel", f"{int(profit_mensuel)} €")
+c1.metric("Chiffre d'Affaires", f"{int(ca_annuel):,} €".replace(",", " "))
+c2.metric("Profit Net Mensuel", f"{int(profit_mensuel):,} €".replace(",", " "))
 c3.metric("Rendement / Apport", f"{(profit_mensuel * 12 / apport * 100 if apport > 0 else 0):.1f} %")
 
 st.markdown("---")
 
-# 7. ANALYSE RAPIDE
+# 7. ANALYSE DÉTAILLÉE
 col_a, col_b = st.columns(2)
+
 with col_a:
-    st.write("### 💎 Crédit & Charges")
-    st.write(f"Prêt In Fine : **{pret:,} €**")
-    st.write(f"Intérêts : **{int(interets_mensuels)} € / mois**")
-with col_b:
-    st.write("### 🛡️ Sécurité")
-    st.info("Réserve de 80 000 € disponible.")
-    st.write("- Paul (Nue-propriété)")
-    st.write("- Emmanuelle (Réversion)")
+    st
