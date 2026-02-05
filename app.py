@@ -83,5 +83,8 @@ col3.metric("Total Intérêts Prêt", f"{int(total_int)} €")
 st.markdown("---")
 st.subheader(f"📊 Tableau d'Amortissement ({type_pret})")
 
-# AJOUT DE hide_index=True POUR ENLEVER LA COLONNE DE GAUCHE
-st.dataframe(
+# COMMANDE FIXÉE : hide_index=True ET PARENTHÈSE FERMÉE
+st.dataframe(df_amort, use_container_width=True, height=400, hide_index=True)
+
+if type_pret == "In Fine":
+    st.info(f"Note : Le crédit In Fine de {m_pret} € à {tx_annuel} % génère un total d'intérêts de {int(total_int)} € sur {ans} ans.")
