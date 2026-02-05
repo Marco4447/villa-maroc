@@ -3,7 +3,7 @@ import streamlit as st
 # 1. CONFIGURATION (Doit être la toute première commande)
 st.set_page_config(page_title="Audit Villa Maroc", layout="wide")
 
-# 2. DESIGN & SUPPRESSION DES MENTIONS STREAMLIT (White Label)
+# 2. DESIGN & SUPPRESSION TOTALE STREAMLIT (White Label)
 st.markdown("""
     <style>
     /* Suppression radicale des menus et footers Streamlit */
@@ -13,7 +13,7 @@ st.markdown("""
     .stAppDeployButton {display: none !important;}
     div[data-testid="stStatusWidget"] {display: none !important;}
     
-    /* Optimisation de l'espace pour Elementor */
+    /* Optimisation de l'espace pour l'intégration iFrame */
     .block-container {
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
@@ -49,4 +49,25 @@ with st.sidebar:
         
     with st.expander("💸 Frais Villa", expanded=True):
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 20)
-        energie_mois = st.number_input("
+        energie_mois = st.number_input("Eau & Elec / mois (€)", value=350)
+        menage_mois = st.number_input("Ménage / mois (€)", value=1000)
+        taxe_fonciere_an = st.number_input("Taxe Foncière / an (€)", value=3000)
+        jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200)
+        fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100)
+
+# 4. MOTEUR DE CALCUL (Logique itérative pour le Seuil)
+def simuler(occ_test, adr_in, m_pret_in, tx_in, ans_in, type_p):
+    # Mensualité
+    if type_p == "In Fine":
+        mens = (m_pret_in * (tx_in / 100)) / 12
+    else:
+        tm = tx_in / 100 / 12
+        nm = ans_in * 12
+        mens = m_pret_in * (tm / (1 - (1 + tm)**-nm)) if tm > 0 else m_pret_in / nm
+    
+    # Exploitation & Impôts Maroc (Abattement 40%)
+    ca = 365 * (occ_test / 100) * adr_in
+    base_taxe = ca * 0.60
+    if base_taxe <= 3000: imp = 0
+    elif base_taxe <= 18000: imp = (base_taxe * 0.34) - 1720
+    else: imp = (base_taxe * 0.38) - 2440
