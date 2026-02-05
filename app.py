@@ -15,7 +15,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BARRE LATÉRALE - RÉGLAGES MODULABLES
+# 2. BARRE LATÉRALE - RÉGLAGES MODULABLES (FLECHES DE FERMETURE)
 with st.sidebar:
     st.header("⚙️ Paramètres")
     
@@ -76,7 +76,7 @@ dscr = (rev_brut_m - frais_concierge - frais_airbnb - f_fixes) / mens if mens > 
 # 4. AFFICHAGE ÉCRAN PRINCIPAL
 st.title("🏰 Audit de Performance & Pilotage Financier")
 
-# Bandeau de KPIs (Mise à jour du bandeau image_12a294)
+# Bandeau de KPIs (Basé sur les métriques du rapport)
 c1, c2, c3, c4 = st.columns(4)
 with c1: st.metric("Cash-Flow Net Mensuel", f"{int(profit_net)} €")
 with c2: st.metric("Mensualité Banque", f"{int(mens)} €")
@@ -105,6 +105,7 @@ with col_flux2:
 
 st.markdown("---")
 
-# Tableau d'amortissement interactif (Mise à jour image_11db82)
+# Tableau d'amortissement interactif
 st.subheader(f"📊 Tableau d'Amortissement Dynamique ({type_pret})")
-df_a = pd.DataFrame(tableau, columns=["
+df_a = pd.DataFrame(tableau, columns=["Mois", "Échéance", "Principal", "Intérêts", "Restant"])
+st.dataframe(df_a, use_container_width=True, height=400, hide_
