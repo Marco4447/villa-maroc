@@ -13,16 +13,17 @@ st.markdown("""
         border: 1px solid #D4AF37; 
         padding: 15px; 
         border-radius: 10px; 
+        text-align: center;
     }
     div[data-testid="stMetricValue"] > div { color: #D4AF37 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. TITRE
+# 3. TITRE PRINCIPAL
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (TOUS LES PARAMÈTRES)
+# 4. BARRE LATÉRALE (PARAMÈTRES)
 with st.sidebar:
     st.header("⚙️ Paramètres du Projet")
     
@@ -56,4 +57,33 @@ charges_totales_an = frais_variables + frais_fixes_an
 profit_annuel_net = ca_annuel - charges_totales_an - interets_annuels
 profit_mensuel_net = profit_annuel_net / 12
 
-# 6.
+# 6. AFFICHAGE DES INDICATEURS (KPI)
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Chiffre d'Affaires Annuel", f"{int(ca_annuel):,} €".replace(",", " "))
+with col2:
+    st.metric("Profit Mensuel Net", f"{int(profit_mensuel_net):,} €".replace(",", " "))
+with col3:
+    renta_apport = (profit_annuel_net / apport_perso * 100) if apport_perso > 0 else 0
+    st.metric("Rendement / Apport", f"{renta_apport:.1f} %")
+
+st.markdown("---")
+
+# 7. ANALYSE DÉTAILLÉE AU CENTRE
+c1, c2 = st.columns(2)
+
+with c1:
+    st.write("### 📊 Performance Locative")
+    st.write(f"Nuits louées par an : **{int(nb_nuits)} nuits**")
+    st.write(f"Charges d'exploitation : **{int(charges_totales_an):,} € / an**".replace(",", " "))
+    
+    # Calcul du Point Mort
+    marge_par_nuit = adr * (1 - com_gestion/100) - frais_menage_nuit
+    if marge_par_nuit > 0:
+        seuil_to = (frais_fixes_an + interets_annuels) / marge_par_nuit / 3.65
+        st.write(f"Point mort (Équilibre) : **{seuil_to:.1f} % d'occupation**")
+    else:
+        st.write("⚠️ Prix de nuitée trop bas pour couvrir les frais variables.")
+
+with c2:
+    st.write("### 🏦
