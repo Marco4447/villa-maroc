@@ -1,9 +1,8 @@
 import streamlit as st
 
-# 1. CONFIGURATION DE LA PAGE
+# 1. CONFIGURATION ET DESIGN
 st.set_page_config(page_title="Audit Rentabilité Villa Marrakech", layout="wide")
 
-# 2. DESIGN PERSONNALISÉ (OR ET NOIR)
 st.markdown("""
     <style>
     header {visibility: hidden;}
@@ -18,97 +17,106 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏰 Audit de Rentabilité & Pricing Dynamique")
+st.title("🏰 Audit de Rentabilité Premium - Marrakech")
 st.markdown("---")
 
-# 3. BARRE LATÉRALE (CONFIGURATION)
+# 2. BARRE LATÉRALE - PARAMÈTRES RÉGLABLES
 with st.sidebar:
-    st.header("⚙️ Paramètres")
+    st.header("⚙️ Configuration")
     
-    # Mensualité fixe selon votre crédit réel
-    mensualite_fixe = 1449 
-    st.success(f"🏦 Crédit bloqué à : **{mensualite_fixe} €** / mois")
+    # FINANCEMENT
+    with st.expander("🏦 Financement & Crédit", expanded=True):
+        type_pret = st.radio("Type de crédit", ["Amortissable", "In Fine"])
+        m_pret = st.number_input("Montant de l'emprunt (€)", value=470000)
+        tx_annuel = st.slider("Taux d'intérêt annuel (%)", 0.0, 10.0, 3.7, step=0.1)
+        ans = st.slider("Durée du crédit (années)", 5, 25, 15)
 
-    with st.expander("📅 Saisonnalité & Revenus", expanded=True):
-        mois_choisi = st.select_slider(
-            "Mois de l'année",
-            options=["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"],
-            value="Avril"
-        )
+    # REVENUS LOCATIFS
+    with st.expander("📅 Revenus & Location", expanded=True):
+        adr_base = st.number_input("Prix de la nuitée (€)", value=430)
+        to_pourcent = st.slider("Taux d'occupation (%)", 0, 100, 41)
         
-        # Logique de Saisonnalité
-        if mois_choisi in ["Déc", "Avril", "Mai", "Oct"]:
-            coeff = 1.3  
-            saison_txt = "🏷️ Haute Saison (+30%)"
-        elif mois_choisi in ["Juil", "Août", "Janv"]:
-            coeff = 0.8  
-            saison_txt = "🏷️ Basse Saison (-20%)"
-        else:
-            coeff = 1.0
-            saison_txt = "🏷️ Saison Standard"
-            
-        adr_base = st.number_input("Prix Nuitée de base (€)", value=430)
-        adr_actuel = adr_base * coeff
-        st.info(f"{saison_txt} : **{int(adr_actuel)} €** / nuit")
-        
-        to = st.slider("Taux d'occupation (%)", 0, 100, 41)
-        
-    with st.expander("💸 Frais Villa (Mensuels)", expanded=True):
-        com_concierge = st.slider("Conciergerie (%)", 0, 40, 20)
-        # Frais fixes totaux regroupés (Entretien, Taxes, Jardin, etc.)
-        frais_fixes_regroupes = st.number_input("Total Frais Fixes / mois (€)", value=1650)
+    # CHARGES (SYSTÈME DE CURSEURS)
+    with st.expander("💸 Charges & Frais", expanded=True):
+        frais_fixes_mois = st.number_input("Charges fixes (Entretien/Web/Assur) / mois (€)", value=1650)
+        frais_variables_pct = st.slider("Charges variables (Conciergerie/Services) %", 0, 40, 20)
 
-# 4. CALCULS FINANCIERS
-nuits_mois = 30.5 * (to / 100)
-ca_mois = nuits_mois * adr_actuel
+    # FISCALITÉ (BASÉ SUR VOS RAPPORTS)
+    with st.expander("⚖️ Régime Fiscal Maroc", expanded=True):
+        regime = st.selectbox("Statut Juridique", ["Personne Physique (Revenus Fonciers)", "Personne Morale (IS)"])
+
+# 3. LOGIQUE DES CALCULS FINANCIERS
+# Calcul de la mensualité
+if type_pret == "In Fine":
+    mensualite = (m_pret * (tx_annuel / 100)) / 12
+else:
+    tm = tx_annuel / 100 / 12
+    nm = ans * 12
+    if tm > 0:
+        mensualite = m_pret * (tm / (1 - (1 + tm)**-nm))
+    else:
+        mensualite = m_pret / nm
+
+# Revenus mensuels
+ca_mensuel = adr_base * 30.5 * (to_pourcent / 100)
+
+# Charges variables
+charges_variables_montant = ca_mensuel * (frais_variables_pct / 100)
 
 # Fiscalité Marocaine
-def calculer_impot_mensuel(revenu_brut):
-    base_taxable = (revenu_brut * 12) * 0.60 # Abattement 40%
-    if base_taxable <= 30000:
-        impot_an = 0
-    elif base_taxable <= 180000:
-        impot_an = (base_taxable * 0.34) - 17200
+def calculer_fiscalite(revenu_brut, statut):
+    if statut == "Personne Physique (Revenus Fonciers)":
+        # Abattement de 40% sur le revenu brut foncier
+        base_imposable = (revenu_brut * 12) * 0.60
+        if base_imposable <= 30000:
+            impot_an = 0
+        elif base_imposable <= 180000:
+            impot_an = (base_imposable * 0.34) - 17200
+        else:
+            impot_an = (base_imposable * 0.38) - 24400
     else:
-        impot_an = (base_taxable * 0.38) - 24400
-    return impot_an / 12
+        # Simplification Personne Morale (Taux IS progressif)
+        base_imposable = (revenu_brut * 12) - (frais_fixes_mois * 12) - (mensualite * 12)
+        if base_imposable <= 300000:
+            impot_an = base_imposable * 0.10
+        else:
+            impot_an = base_imposable * 0.20
+    return max(0, impot_an / 12)
 
-impot_mois = calculer_impot_mensuel(ca_mois)
-commission_montant = ca_mois * com_concierge / 100
-total_depenses_mois = commission_montant + frais_fixes_regroupes + mensualite_fixe + impot_mois
-profit_mensuel = ca_mois - total_depenses_mois
+impot_mensuel = calculer_fiscalite(ca_mensuel, regime)
+profit_net_mensuel = ca_mensuel - charges_variables_montant - frais_fixes_mois - mensualite - impot_mensuel
 
-# 5. AFFICHAGE DES RÉSULTATS
+# 4. AFFICHAGE DANS L'ÉCRAN PRINCIPAL
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Revenu Mensuel", f"{int(ca_mois)} €")
+    st.metric("Revenu Mensuel Brut", f"{int(ca_mensuel)} €")
 with col2:
-    st.metric("Profit Net / Mois", f"{int(profit_mensuel)} €")
+    st.metric("Profit Net / Mois", f"{int(profit_net_mensuel)} €")
 with col3:
-    st.metric("Mensualité Crédit", f"{int(mensualite_fixe)} €")
+    st.metric("Mensualité Crédit", f"{int(mensualite)} €")
 
 st.markdown("---")
 
 c1, c2 = st.columns(2)
 with c1:
-    st.subheader("📊 Détail des charges (mensuel)")
-    st.write(f"• Conciergerie ({com_concierge}%) : **{int(commission_montant)} €**")
-    st.write(f"• Frais fixes regroupés : **{int(frais_fixes_regroupes)} €**")
-    st.write(f"• Impôts Maroc (Estimé) : **{int(impot_mois)} €**")
-    st.write(f"• Remboursement crédit : **{int(mensualite_fixe)} €**")
+    st.subheader("📊 Répartition des Charges")
+    st.write(f"• Mensualité ({type_pret}) : **{int(mensualite)} €**")
+    st.write(f"• Charges Variables ({frais_variables_pct}%) : **{int(charges_variables_montant)} €**")
+    st.write(f"• Charges Fixes : **{int(frais_fixes_mois)} €**")
+    st.write(f"• Impôt ({regime}) : **{int(impot_mensuel)} €**")
 
 with c2:
-    # Calcul simplifié du Seuil de Rentabilité
+    # Calcul du Point Mort (Seuil de Rentabilité)
     occ_seuil = 0
     for test_occ in range(0, 101):
-        test_ca = 30.5 * (test_occ / 100) * adr_actuel
-        test_imp = calculer_impot_mensuel(test_ca)
-        test_ch = (test_ca * com_concierge / 100) + frais_fixes_regroupes + mensualite_fixe + test_imp
-        if test_ca >= test_ch:
+        test_ca = adr_base * 30.5 * (test_occ / 100)
+        test_imp = calculer_fiscalite(test_ca, regime)
+        test_total_ch = (test_ca * frais_variables_pct / 100) + frais_fixes_mois + mensualite + test_imp
+        if test_ca >= test_total_ch:
             occ_seuil = test_occ
             break
-    
+            
     st.subheader("🏁 Seuil de Rentabilité")
-    st.write(f"À {int(adr_actuel)}€/nuit, l'équilibre est à :")
-    st.info(f"**{occ_seuil} % d'occupation**")
-    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** par mois.")
+    st.write(f"Pour couvrir toutes vos charges à **{adr_base} €/nuit** :")
+    st.info(f"**{occ_seuil} % d'occupation minimum**")
+    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** louées par mois.")
