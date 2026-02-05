@@ -1,28 +1,25 @@
 import streamlit as st
 
-# 1. CONFIGURATION (Première ligne obligatoire)
+# 1. CONFIGURATION (Doit être la toute première commande)
 st.set_page_config(page_title="Audit Villa Maroc", layout="wide")
 
-# 2. DESIGN PRO & SUPPRESSION TOTALE STREAMLIT
+# 2. DESIGN & SUPPRESSION DES MENTIONS STREAMLIT (White Label)
 st.markdown("""
     <style>
-    /* Masquer le menu, le header et le footer */
-    #MainMenu {visibility: hidden !important;}
+    /* Suppression radicale des menus et footers Streamlit */
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
-    
-    /* Masquer spécifiquement la mention 'Built with Streamlit' */
+    #MainMenu {visibility: hidden !important;}
     .stAppDeployButton {display: none !important;}
     div[data-testid="stStatusWidget"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
     
-    /* Supprimer l'espace blanc et forcer le plein écran */
-    .main .block-container {
+    /* Optimisation de l'espace pour Elementor */
+    .block-container {
         padding-top: 0rem !important;
         padding-bottom: 0rem !important;
     }
 
-    /* Style global Sombre & Or */
+    /* Thème Sombre & Or */
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     h1, h2, h3 { color: #D4AF37 !important; font-family: 'serif'; }
     div[data-testid="stMetric"] { 
@@ -33,5 +30,23 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- RESTE DU CODE (Calculs itératifs du seuil de rentabilité) ---
-# (Reprenez votre logique de calcul du profit et de l'impôt Maroc ici)
+st.title("🏰 Audit de rentabilité de votre Villa")
+st.markdown("---")
+
+# 3. BARRE LATÉRALE (CONFIGURATION)
+with st.sidebar:
+    st.header("⚙️ Paramètres")
+    with st.expander("🏦 Financement", expanded=True):
+        type_pret = st.radio("Type de crédit", ["In Fine", "Amortissable"])
+        m_pret = st.number_input("Montant emprunté (€)", value=470000)
+        tx_annuel = st.number_input("Taux annuel (%)", value=3.70)
+        ans = st.slider("Durée (ans)", 1, 25, 15)
+        apport = st.number_input("Apport personnel (€)", value=200000)
+
+    with st.expander("📅 Revenus Locatifs", expanded=True):
+        adr = st.number_input("Prix Nuitée (€)", value=430)
+        to = st.slider("Occupation Actuelle (%)", 0, 100, 41)
+        
+    with st.expander("💸 Frais Villa", expanded=True):
+        com_concierge = st.slider("Conciergerie (%)", 0, 40, 20)
+        energie_mois = st.number_input("
