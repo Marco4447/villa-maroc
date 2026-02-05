@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # 1. CONFIGURATION DE LA PAGE
-st.set_page_config(page_title="Audit Villa Marrakech", layout="wide")
+st.set_page_config(page_title="Audit Villa Marrakech - Expert", layout="wide")
 
 st.markdown("""
     <style>
@@ -15,80 +15,79 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BARRE LATÉRALE - PARAMÈTRES MODULABLES
+# 2. BARRE LATÉRALE - RÉGLAGES MODULABLES
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("⚙️ Paramètres")
     
-    with st.expander("🏦 Financement", expanded=True):
-        type_p = st.radio("Type de prêt", ["In Fine", "Amortissable"])
-        m_p = st.number_input("Capital (€)", value=470000)
-        t_a = st.slider("Taux (%)", 0.0, 10.0, 3.7)
-        ans = st.slider("Durée (ans)", 5, 25, 15)
+    with st.expander("🏦 Financement", expanded=False):
+        type_pret = st.radio("Structure du prêt", ["In Fine", "Amortissable"])
+        m_pret = st.number_input("Capital emprunté (€)", value=470000)
+        tx_annuel = st.slider("Taux d'intérêt annuel (%)", 0.0, 10.0, 3.7, step=0.1)
+        ans = st.slider("Durée du crédit (ans)", 5, 25, 15)
 
-    with st.expander("📅 Revenus Airbnb", expanded=True):
-        adr = st.number_input("Prix Nuitée (€)", value=430)
-        occ = st.slider("Occupation (%)", 0, 100, 45)
+    with st.expander("📅 Hypothèses Airbnb", expanded=True):
+        adr = st.number_input("Prix de la nuitée moyen (€)", value=430)
+        occ = st.slider("Taux d'occupation estimé (%)", 0, 100, 45)
 
-    with st.expander("💸 Charges & Impôts", expanded=True):
-        f_fix = st.number_input("Charges Fixes / mois (€)", value=1650)
-        c_concierge = st.slider("Conciergerie (%)", 0, 30, 20)
-        c_airbnb = st.slider("Frais Airbnb (%)", 0, 20, 3)
-        regime = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
+    with st.expander("💸 Charges & Fiscalité", expanded=True):
+        f_fixes = st.number_input("Charges fixes mensuelles (€)", value=1650)
+        com_concierge_pct = st.slider("Commission Conciergerie (%)", 0, 30, 20)
+        com_airbnb_pct = st.slider("Frais Airbnb/Booking (%)", 0, 20, 3)
+        statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
 
-# 3. CALCULS FINANCIERS
+# 3. MOTEUR DE CALCULS FINANCIERS
 nb_m = ans * 12
-tm = t_a / 100 / 12
+tm = tx_annuel / 100 / 12
 tableau = []
-capital_restant = m_p
+cr = m_pret
 
-# Calcul Mensualité
-if type_p == "Amortissable":
-    mens = m_p * (tm / (1 - (1 + tm)**-nb_m)) if tm > 0 else m_p / nb_m
+# --- Calcul de la mensualité ---
+if type_pret == "Amortissable":
+    mens = m_pret * (tm / (1 - (1 + tm)**-nb_m)) if tm > 0 else m_pret / nb_m
     for i in range(1, nb_m + 1):
-        interet = capital_restant * tm
-        princ = mens - interet
-        capital_restant -= princ
-        tableau.append([i, mens, princ, interet, max(0, capital_restant)])
+        int_m = cr * tm
+        princ = mens - int_m
+        cr -= princ
+        tableau.append([i, round(mens, 2), round(princ, 2), round(int_m, 2), round(max(0, cr), 2)])
 else:
-    mens = m_p * tm
+    mens = m_pret * tm
     for i in range(1, nb_m + 1):
-        tableau.append([i, mens if i < nb_m else mens + m_p, m_p if i == nb_m else 0, mens, m_p if i < nb_m else 0])
+        p_fin = m_pret if i == nb_m else 0
+        tableau.append([i, round(mens + p_fin, 2), p_fin, round(mens, 2), m_pret if i < nb_m else 0])
 
-# Rentabilité
-rev_b = adr * 30.5 * (occ / 100)
-f_var = rev_b * ((c_concierge + c_airbnb) / 100)
+# --- Analyse de la Rentabilité ---
+rev_brut_m = adr * 30.5 * (occ / 100)
+frais_concierge = rev_brut_m * (com_concierge_pct / 100)
+frais_airbnb = rev_brut_m * (com_airbnb_pct / 100)
 
-# Fiscalité (Abattement 40% pour PP ou Réel pour PM)
-if regime == "Personne Physique":
-    base_t = rev_b * 0.60
-    impot = base_t * 0.15
+# Fiscalité selon le régime (Application de l'abattement de 40% pour PP)
+if statut == "Personne Physique":
+    base_fonciere = rev_brut_m * 0.60 
+    impot_m = base_fonciere * 0.15 
 else:
-    benef = rev_b - f_var - f_fix - mens
-    impot = max(0, benef * 0.20)
+    benef_is = rev_brut_m - frais_concierge - frais_airbnb - f_fixes - mens
+    impot_m = max(0, benef_is * 0.20)
 
-p_net = rev_b - f_var - f_fix - mens - impot
+profit_net = rev_brut_m - frais_concierge - frais_airbnb - f_fixes - mens - impot_m
+
+# Ratios Experts
+dscr = (rev_brut_m - frais_concierge - frais_airbnb - f_fixes) / mens if mens > 0 else 0
 
 # 4. AFFICHAGE ÉCRAN PRINCIPAL
-st.title("🏰 Audit de Performance Financière")
+st.title("🏰 Audit de Performance & Pilotage Financier")
 
-# Bandeau de Ratios (KPIs)
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Profit Net / Mois", f"{int(p_net)} €")
-col2.metric("Mensualité", f"{int(mens)} €")
-col3.metric("Impôt", f"{int(impot)} €")
-dscr = (rev_b - f_var - f_fix) / mens if mens > 0 else 0
-col4.metric("DSCR", f"{dscr:.2f}")
+# Bandeau de KPIs (Mise à jour du bandeau image_12a294)
+c1, c2, c3, c4 = st.columns(4)
+with c1: st.metric("Cash-Flow Net Mensuel", f"{int(profit_net)} €")
+with c2: st.metric("Mensualité Banque", f"{int(mens)} €")
+with c3: st.metric("DSCR (Solvabilité)", f"{dscr:.2f}", help="Indice de sécurité (>1.20)")
+with c4: st.metric("Impôt Mensuel", f"{int(impot_m)} €", delta=statut, delta_color="off")
 
 st.markdown("---")
 
-# Détails des flux
-c_a, c_b = st.columns(2)
-with c_a:
-    st.subheader("📝 Flux de Trésorerie Mensuels")
-    st.write(f"• Revenu Brut : **{int(rev_b)} €**")
-    st.write(f"• Frais Gestion ({c_concierge + c_airbnb}%) : **-{int(f_var)} €**")
-    st.write(f"• Charges Fixes : **-{int(f_fix)} €**")
-    st.write(f"• Impôt ({regime}) : **-{int(impot)} €**")
-
-with c_b:
-    st.subheader
+# Détails des Flux
+col_flux1, col_flux2 = st.columns(2)
+with col_flux1:
+    st.subheader("📝 Analyse des Flux (Mensuel)")
+    st.write(f"• Chiffre d'Affaires : **{int(rev_brut_m)} €**")
+    st.write(
