@@ -1,11 +1,18 @@
 import streamlit as st
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION (Doit impérativement être la première commande)
 st.set_page_config(page_title="Audit Rentabilité Villa", layout="wide")
 
-# 2. DESIGN
+# 2. DESIGN & WHITE LABEL (Masquage du menu et footer Streamlit)
 st.markdown("""
     <style>
+    /* Masquer l'interface Streamlit pour l'intégration */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    .stAppDeployButton {display: none;}
+    
+    /* Couleurs personnalisées Or et Sombre */
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     h1, h2, h3 { color: #D4AF37 !important; font-family: 'serif'; }
     div[data-testid="stMetric"] { 
@@ -19,7 +26,7 @@ st.markdown("""
 st.title("🏰 Audit de rentabilité complet de votre Villa")
 st.markdown("---")
 
-# 3. SIDEBAR
+# 3. BARRE LATÉRALE (CONFIGURATION)
 with st.sidebar:
     st.header("⚙️ Configuration")
     with st.expander("🏦 Financement", expanded=False):
@@ -40,24 +47,32 @@ with st.sidebar:
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100)
 
-# 4. CALCULS DE BASE
+# 4. CALCULS DE BASE (CORRIGÉS)
 if type_pret == "In Fine":
     mensualite = (m_pret * (tx_annuel / 100)) / 12
 else:
     t_m = tx_annuel / 100 / 12
     n_m = ans * 12
-    mensualite = m_pret * (t_m / (1 - (1 + t_m)**-n_m)) if t_m > 0 else m_pret / n_m
+    # Correction de la syntaxe if/else pour éviter l'erreur ligne 58
+    if t_m > 0:
+        mensualite = m_pret * (t_m / (1 - (1 + t_m)**-n_m))
+    else:
+        mensualite = m_pret / n_m
 
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
 charges_fixes_an = taxe_fonciere_an + (energie_mois + menage_mois + jardin_mois + fixes_mois) * 12
 
-# 5. FISCALITÉ DYNAMIQUE
+# 5. FISCALITÉ DYNAMIQUE MAROC
 def calculer_impot(revenu_brut):
+    # Base taxable à 60% du CA
     base = revenu_brut * 0.60
-    if base <= 3000: return 0
-    elif base <= 18000: return (base * 0.34) - 1720
-    else: return (base * 0.38) - 2440
+    if base <= 3000: 
+        return 0
+    elif base <= 18000: 
+        return (base * 0.34) - 1720
+    else: 
+        return (base * 0.38) - 2440
 
 impot_actuel = calculer_impot(ca_an)
 total_charges_an = (ca_an * com_concierge / 100) + charges_fixes_an + (mensualite * 12) + impot_actuel
@@ -73,7 +88,7 @@ for test_occ in range(0, 101):
         occ_seuil = test_occ
         break
 
-# 7. AFFICHAGE
+# 7. AFFICHAGE DES RÉSULTATS
 c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("CA Annuel Estimé", f"{int(ca_an)} €")
