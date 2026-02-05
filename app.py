@@ -3,7 +3,7 @@ import streamlit as st
 # 1. CONFIGURATION
 st.set_page_config(page_title="Audit Rentabilité Villa", layout="wide")
 
-# 2. DESIGN PRO
+# 2. DESIGN PRO (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -16,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🏰 Audit de rentabilité détaillé de votre villa")
+st.title("🏰 Audit de rentabilité de votre villa")
 st.markdown("---")
 
 # 3. BARRE LATÉRALE
@@ -34,9 +34,11 @@ with st.sidebar:
         to = st.slider("Occupation (%)", 0, 100, 45, 1)
         
     with st.expander("💸 Frais Villa (Mensuels)", expanded=True):
+        st.subheader("Charges Variables")
         com_concierge = st.slider("Conciergerie (%)", 0, 40, 25)
         energie_mois = st.number_input("Eau & Elec / mois (€)", value=450, step=50)
         menage_mois = st.number_input("Ménage / mois (€)", value=1000, step=100)
+        st.subheader("Charges Fixes")
         taxe_fonciere_an = st.number_input("Taxe Foncière / an (€)", value=3000, step=100)
         jardin_mois = st.number_input("Jardin & Piscine / mois (€)", value=200, step=50)
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
@@ -62,4 +64,28 @@ elif base_imposable <= 5000: impot_an = (base_imposable * 0.10) - 300
 elif base_imposable <= 6000: impot_an = (base_imposable * 0.20) - 800
 elif base_imposable <= 8000: impot_an = (base_imposable * 0.30) - 1400
 elif base_imposable <= 18000: impot_an = (base_imposable * 0.34) - 1720
-else: impot_
+else: impot_an = (base_imposable * 0.38) - 2440
+
+profit_mensuel_net = (ca_an - total_charges_an - (mensualite * 12) - impot_an) / 12
+
+# 6. SEUIL DE RENTABILITÉ
+marge_apres_com = 1 - (com_concierge / 100)
+seuil_ca_an = (charges_fixes_an + (mensualite * 12)) / marge_apres_com
+
+# 7. AFFICHAGE ÉCRAN PRINCIPAL
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.metric("CA Annuel Estimé", f"{int(ca_an)} €")
+with c2:
+    st.metric("Profit Net Mensuel", f"{int(profit_mensuel_net)} €")
+with c3:
+    renta = (profit_mensuel_net * 12 / apport * 100) if apport > 0 else 0
+    st.metric("Rendement / Apport", f"{renta:.1f} %")
+
+st.markdown("---")
+
+col_res1, col_res2 = st.columns(2)
+with col_res1:
+    st.subheader("📊 Performance Détaillée")
+    st.write(f"• Total Charges Annuelles : **{int(total_charges_an)} €**")
+    st.write(f"• Impôts Maroc : **{int(impot_an)} €/an
