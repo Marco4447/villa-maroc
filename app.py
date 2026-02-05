@@ -23,7 +23,7 @@ st.markdown("""
 st.title("🏰 Simulation de rentabilité de votre villa")
 st.markdown("---")
 
-# 4. BARRE LATÉRALE (TOUS LES RÉGLAGES)
+# 4. BARRE LATÉRALE (PARAMÈTRES RÉGLABLES)
 with st.sidebar:
     st.header("⚙️ Paramètres")
     
@@ -43,22 +43,43 @@ with st.sidebar:
         menage = st.number_input("Ménage / nuit (€)", value=35, step=5)
 
 # 5. LOGIQUE DE CALCUL
-# Partie Bancaire
+# Calcul bancaire
 mensu_int = (m_pret * (tx / 100)) / 12
 tot_int = mensu_int * 12 * ans
 
-# Partie Exploitation
+# Calcul exploitation
 nuits = 365 * (to / 100)
 ca = nuits * adr
 frais_var = (ca * (com / 100)) + (nuits * menage)
 total_charges = frais_var + fixe
-profit_mensuel = (ca - total_charges - (mensu_int * 12)) / 12
+# Profit mensuel après intérêts et charges
+profit_mens = (ca - total_charges - (mensu_int * 12)) / 12
 
 # 6. AFFICHAGE DES RÉSULTATS (KPI)
 c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("Chiffre d'Affaires Annuel", f"{int(ca):,} €".replace(",", " "))
 with c2:
-    st.metric("Profit Net Mensuel", f"{int(profit_mensuel):,} €".replace(",", " "))
+    st.metric("Profit Net Mensuel", f"{int(profit_mens):,} €".replace(",", " "))
 with c3:
-    renta = (profit_mensuel * 12 / apport * 100) if apport >
+    # Calcul de renta sécurisé
+    if apport > 0:
+        renta_val = (profit_mens * 12 / apport) * 100
+    else:
+        renta_val = 0
+    st.metric("Rendement / Apport", f"{renta_val:.1f} %")
+
+st.markdown("---")
+
+# 7. RÉCAPITULATIF TECHNIQUE
+col_a, col_b = st.columns(2)
+with col_a:
+    st.subheader("📊 Performance Locative")
+    st.write(f"Occupation réelle : **{int(nuits)} nuits/an**")
+    st.write(f"Total des charges : **{int(total_charges):,} €/an**".replace(",", " "))
+    
+with col_b:
+    st.subheader("🏦 Détails Bancaires")
+    st.write(f"Mensualité (Intérêts seuls) : **{int(mensu_int):,} €/mois**")
+    st.write(f"Coût total des intérêts : **{int(tot_int):,} €**")
+    st.write(f"Capital dû à l'échéance : **{int(m_pret):,} €**".replace(",", " "))
