@@ -1,7 +1,7 @@
 import streamlit as st
 
 # 1. CONFIGURATION
-st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
+st.set_page_config(page_title="Simulation Villa Maroc", layout="wide")
 
 # 2. DESIGN (Sombre & Or)
 st.markdown("""
@@ -44,7 +44,6 @@ with st.sidebar:
         fixes_mois = st.number_input("Assurances & Internet / mois (€)", value=100, step=10)
 
 # 4. CALCULS FINANCIERS
-# Crédit
 if type_pret == "In Fine":
     mensualite = m_pret * (tx_annuel / 100 / 12)
 else:
@@ -52,7 +51,6 @@ else:
     n = ans * 12
     mensualite = m_pret * (t / (1 - (1 + t)**-n)) if t > 0 else m_pret / n
 
-# Exploitation
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
-charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage
+charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_
