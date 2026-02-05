@@ -3,7 +3,7 @@ import streamlit as st
 # 1. CONFIGURATION
 st.set_page_config(page_title="Simulation de rentabilité", layout="wide")
 
-# 2. DESIGN PRO
+# 2. DESIGN (Sombre & Or)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
@@ -55,10 +55,4 @@ else:
 # Exploitation
 nuits_an = 365 * (to / 100)
 ca_an = nuits_an * adr
-charges_an = (ca_an * com_concierge / 100) + (energie_mois * 12) + (menage_mois * 12) + taxe_fonciere_an + (jardin_mois * 12) + (fixes_mois * 12)
-
-# 5. CALCUL "IMPÔTS MAROC"
-# Abattement de 40% sur le CA Brut
-base_imposable = ca_an * 0.60
-
-# Barème IR
+charges_an = (ca_an * (com_concierge / 100)) + (energie_mois * 12) + (menage
