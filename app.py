@@ -2,49 +2,43 @@ import streamlit as st
 import pandas as pd
 
 # 1. CONFIGURATION
-st.set_page_config(page_title="Audit Villa Marrakech - Précision", layout="wide")
+st.set_page_config(page_title="Audit Expert - Villa Marrakech", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: #E0E0E0; }
     h1, h2, h3 { color: #D4AF37 !important; }
-    div[data-testid="stMetric"] { 
-        background-color: #161B22; border: 1px solid #D4AF37; 
-        padding: 15px; border-radius: 10px; text-align: center;
-    }
+    div[data-testid="stMetric"] { background-color: #161B22; border: 1px solid #D4AF37; padding: 15px; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BARRE LATÉRALE - CONFIGURATION DÉTAILLÉE
+# 2. BARRE LATÉRALE - SAISIE TOTALE
 with st.sidebar:
     st.header("⚙️ Paramètres d'Audit")
     
-    with st.expander("🏦 Financement (Prêt)", expanded=False):
+    with st.expander("🏦 Financement", expanded=False):
         type_pret = st.radio("Type de prêt", ["In Fine", "Amortissable"])
-        m_pret = st.number_input("Capital emprunté (€)", value=470000) #
-        tx_annuel = st.slider("Taux d'intérêt (%)", 0.0, 10.0, 3.7, step=0.1)
+        m_pret = st.number_input("Capital emprunté (€)", value=470000)
+        tx_annuel = st.slider("Taux (%)", 0.0, 10.0, 3.7, step=0.1)
         ans = st.slider("Durée (ans)", 5, 25, 15)
 
     with st.expander("📅 Revenus Locatifs", expanded=True):
         adr = st.number_input("Prix Nuitée (€)", value=430)
-        occ = st.slider("Taux d'occupation (%)", 0, 100, 45)
+        occ = st.slider("Occupation (%)", 0, 100, 45)
 
-    with st.expander("💸 Structure des Charges", expanded=True):
+    with st.expander("💸 Charges & Fiscalité", expanded=True):
         f_fixes = st.number_input("Charges Fixes / mois (€)", value=1650)
-        # DISSOCIATION ICI :
-        com_concierge_pct = st.slider("Com. Conciergerie (%)", 0, 30, 20)
-        com_airbnb_pct = st.slider("Frais Airbnb/Booking (%)", 0, 20, 3)
-        
-        tx_impot_est = st.slider("Impôt estimé sur bénéfice (%)", 0, 40, 20)
-        statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
+        com_concierge = st.slider("Conciergerie (%)", 0, 30, 20)
+        com_airbnb = st.slider("Frais Plateforme (%)", 0, 20, 3)
+        statut = st.selectbox("Régime Fiscal Maroc", ["Personne Physique", "Personne Morale"])
 
-# 3. CALCULS FINANCIERS
+# 3. MOTEUR DE CALCULS
 nb_m = ans * 12
 tm = tx_annuel / 100 / 12
 tableau = []
 cr = m_pret
 
-# Amortissement
+# Calcul Mensualité
 if type_pret == "Amortissable":
     mens = m_pret * (tm / (1 - (1 + tm)**-nb_m)) if tm > 0 else m_pret / nb_m
     for i in range(1, nb_m + 1):
@@ -55,60 +49,51 @@ if type_pret == "Amortissable":
 else:
     mens = m_pret * tm
     for i in range(1, nb_m + 1):
-        p = 0 if i < nb_m else m_pret
-        ech = mens if i < nb_m else mens + m_pret
-        tableau.append([i, round(ech, 2), round(p, 2), round(mens, 2), m_pret if i < nb_m else 0])
+        tableau.append([i, mens if i < nb_m else mens + m_pret, m_pret if i == nb_m else 0, mens, m_pret if i < nb_m else 0])
 
-# Rentabilité avec dissociation
+# Calcul Rentabilité & Impôt Dynamique
 rev_brut_m = adr * 30.5 * (occ / 100)
-frais_concierge = rev_brut_m * (com_concierge_pct / 100)
-frais_airbnb = rev_brut_m * (com_airbnb_pct / 100)
-total_vars = frais_concierge + frais_airbnb
+frais_vars = rev_brut_m * ((com_concierge + com_airbnb) / 100)
 
-# Fiscalité simplifiée
-base_taxable = max(0, rev_brut_m - total_vars - f_fixes - mens)
-impot_m = base_taxable * (tx_impot_est / 100)
-profit_net = rev_brut_m - total_vars - f_fixes - mens - impot_m
+# LOGIQUE FISCALE EXPERTE
+if statut == "Personne Physique":
+    # Impôt sur le CA brut (après abattement de 40%) - Taux RAS 15%
+    base_fonciere = rev_brut_m * 0.60
+    impot_m = base_fonciere * 0.15 #
+else:
+    # Impôt sur le Bénéfice (après déduction intérêts et charges) - Taux IS 20%
+    benefice_avant_is = rev_brut_m - frais_vars - f_fixes - mens
+    impot_m = max(0, benefice_avant_is * 0.20) #
 
-# Ratios Experts
-dscr = (rev_brut_m - total_vars - f_fixes) / mens if mens > 0 else 0
-roi_annuel = ((profit_net * 12) / m_pret) * 100 if m_pret > 0 else 0
+profit_net = rev_brut_m - frais_vars - f_fixes - mens - impot_m
 
-# 4. AFFICHAGE ÉCRAN PRINCIPAL
-st.title("🏰 Audit de Performance & Ratios de Pilotage")
+# 4. AFFICHAGE
+st.title("🏰 Audit de Performance Immobilière")
 
-# Bandeau KPI
 c1, c2, c3, c4 = st.columns(4)
-with c1: st.metric("Profit Net Mensuel", f"{int(profit_net)} €")
-with c2: st.metric("DSCR (Solvabilité)", f"{dscr:.2f}", help="Doit être > 1.20 pour rassurer la banque")
-with c3: st.metric("Rendement Net (ROI)", f"{roi_annuel:.2f} %")
-with c4: st.metric("Mensualité Crédit", f"{int(mens)} €")
+c1.metric("Net / Mois", f"{int(profit_net)} €")
+c2.metric("Impôt Mensuel", f"{int(impot_m)} €", delta=statut, delta_color="off")
+c3.metric("Mensualité", f"{int(mens)} €")
+c4.metric("DSCR", f"{round((rev_brut_m - frais_vars - f_fixes)/mens, 2) if mens > 0 else 0}")
 
 st.markdown("---")
-
-# Détails des Flux
-col_flux1, col_flux2 = st.columns(2)
-with col_flux1:
-    st.subheader("📝 Détail des Flux (Mensuel)")
+st.subheader(f"📊 Analyse des flux ({statut})")
+col_a, col_b = st.columns(2)
+with col_a:
     st.write(f"• Revenu Brut : **{int(rev_brut_m)} €**")
-    st.write(f"• Frais Conciergerie ({com_concierge_pct}%) : **-{int(frais_concierge)} €**")
-    st.write(f"• Frais Airbnb ({com_airbnb_pct}%) : **-{int(frais_airbnb)} €**")
+    st.write(f"• Gestion & Plateformes : **-{int(frais_vars)} €**")
     st.write(f"• Charges Fixes : **-{int(f_fixes)} €**")
-    st.write(f"• Impôt estimé ({tx_impot_est}%) : **-{int(impot_m)} €**")
-    st.divider()
-    st.markdown(f"### Cash-Flow : **{int(profit_net)} € / mois**")
+    st.write(f"• Mensualité Banque : **-{int(mens)} €**")
+    st.write(f"• **Impôt estimé : -{int(impot_m)} €**")
 
-with col_flux2:
-    st.subheader("🏁 Seuil de Rentabilité")
-    # Calcul dynamique du point mort
-    seuil_ca = (f_fixes + mens) / (1 - (com_concierge_pct + com_airbnb_pct + tx_impot_est)/100)
-    occ_seuil = (seuil_ca / (adr * 30.5)) * 100
-    st.info(f"Équilibre atteint à **{int(occ_seuil)}%** d'occupation.")
-    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** par mois.")
+with col_b:
+    st.info(f"**Note de l'Expert :** En **{statut}**, votre impôt est calculé sur une base de **{int(base_fonciere if statut=='Personne Physique' else max(0, benefice_avant_is))} €**.")
+    if statut == "Personne Physique":
+        st.warning("Attention : En PP, les intérêts bancaires ne réduisent pas votre impôt au Maroc.")
+    else:
+        st.success("Avantage IS : Vos intérêts et charges réduisent directement votre base imposable.")
 
 st.markdown("---")
-
-# Tableau d'amortissement
-st.subheader(f"📊 Tableau d'Amortissement Dynamique ({type_pret})")
+st.subheader("📅 Tableau d'Amortissement")
 df_a = pd.DataFrame(tableau, columns=["Mois", "Échéance", "Principal", "Intérêts", "Restant"])
-st.dataframe(df_a, use_container_width=True, height=400, hide_index=True)
+st.dataframe(df_a, use_container_width=True, height=350, hide_index=True)
