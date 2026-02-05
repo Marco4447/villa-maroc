@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# 1. CONFIGURATION
+# 1. CONFIGURATION DE LA PAGE
 st.set_page_config(page_title="Audit Villa Marrakech", layout="wide")
 
 st.markdown("""
@@ -15,24 +15,29 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BARRE LATÉRALE (SIDEBAR)
+# 2. BARRE LATÉRALE AVEC SECTIONS RÉTRACTABLES (FLECHES)
 with st.sidebar:
     st.header("⚙️ Configuration")
-    type_pret = st.radio("Type de prêt", ["In Fine", "Amortissable"])
-    m_pret = st.number_input("Montant emprunté (€)", value=470000)
-    tx_annuel = st.slider("Taux d'intérêt (%)", 0.0, 10.0, 3.7, step=0.1)
-    ans = st.slider("Durée (ans)", 5, 25, 15)
     
-    st.markdown("---")
-    adr = st.number_input("Prix Nuitée (€)", value=430)
-    occ = st.slider("Taux d'occupation (%)", 0, 100, 41)
+    # Section Financement
+    with st.expander("🏦 Financement", expanded=False):
+        type_pret = st.radio("Type de prêt", ["In Fine", "Amortissable"])
+        m_pret = st.number_input("Montant emprunté (€)", value=470000)
+        tx_annuel = st.slider("Taux d'intérêt (%)", 0.0, 10.0, 3.7, step=0.1)
+        ans = st.slider("Durée (ans)", 5, 25, 15)
     
-    st.markdown("---")
-    f_fixes = st.number_input("Charges Fixes Mensuelles (€)", value=1650)
-    com_pct = st.slider("Com. Conciergerie (%)", 0, 40, 20)
-    statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
+    # Section Revenus
+    with st.expander("📅 Revenus & Occupation", expanded=True):
+        adr = st.number_input("Prix Nuitée (€)", value=430)
+        occ = st.slider("Taux d'occupation (%)", 0, 100, 41)
+    
+    # Section Charges
+    with st.expander("💸 Charges Mensuelles", expanded=False):
+        f_fixes = st.number_input("Frais fixes (€)", value=1650)
+        com_pct = st.slider("Com. Conciergerie (%)", 0, 40, 20)
+        statut = st.selectbox("Régime Fiscal", ["Personne Physique", "Personne Morale"])
 
-# 3. CALCULS FINANCIERS
+# 3. LOGIQUE DES CALCULS
 nb_m = ans * 12
 tm = tx_annuel / 100 / 12
 tableau = []
@@ -57,9 +62,8 @@ else:
 
 df_amort = pd.DataFrame(tableau, columns=["Mois", "Échéance", "Principal", "Intérêts", "Restant"])
 
-# Revenus et Charges
+# Rentabilité
 rev_brut_mois = adr * 30.5 * (occ / 100)
-rev_brut_an = rev_brut_mois * 12
 f_vars_mois = rev_brut_mois * (com_pct / 100)
 
 def calcul_impot(r, s):
@@ -74,36 +78,29 @@ def calcul_impot(r, s):
 
 impot_mois = calcul_impot(rev_brut_mois, statut)
 cash_flow_net = rev_brut_mois - f_vars_mois - f_fixes - mens_banque - impot_mois
-rendement_brut = (rev_brut_an / (m_pret * 1.2)) * 100 # Estimation avec frais d'acquisition
 
 # 4. AFFICHAGE ÉCRAN PRINCIPAL
-st.title("🏰 Tableau de Bord d'Investissement - Marrakech")
+st.title("🏰 Audit de Rentabilité Financière")
 
-# --- LIGNE 1 : METRICS CLÉS ---
-col1, col2, col3, col4 = st.columns(4)
+# Metrics de synthèse
+col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Profit Net Mensuel", f"{int(cash_flow_net)} €")
+    st.metric("Profit Net / Mois", f"{int(cash_flow_net)} €")
 with col2:
-    st.metric("Revenu Brut Annuel", f"{int(rev_brut_an)} €")
+    st.metric("Mensualité Banque", f"{int(mens_banque)} €")
 with col3:
-    st.metric("Total Intérêts", f"{int(total_int)} €")
-with col4:
-    st.metric("Rendement Brut", f"{rendement_brut:.1f} %")
+    st.metric("Total Intérêts Prêt", f"{int(total_int)} €")
 
 st.markdown("---")
 
-# --- LIGNE 2 : DÉTAILS ET SEUIL ---
+# Détails et Seuil
 c1, c2 = st.columns(2)
 with c1:
-    st.subheader("📝 Analyse des Flux Mensuels")
-    st.write(f"• Revenu Locatif Brut : **{int(rev_brut_mois)} €**")
-    st.write(f"• Conciergerie ({com_pct}%) : **-{int(f_vars_mois)} €**")
+    st.subheader("📝 Flux de Trésorerie")
+    st.write(f"• Revenu Brut : **{int(rev_brut_mois)} €**")
+    st.write(f"• Conciergerie : **-{int(f_vars_mois)} €**")
     st.write(f"• Charges Fixes : **-{int(f_fixes)} €**")
-    st.write(f"• Échéance Banque : **-{int(mens_banque)} €**")
-    st.write(f"• Impôt Estimé ({statut}) : **-{int(impot_mois)} €**")
-    st.divider()
-    color = "green" if cash_flow_net > 0 else "red"
-    st.markdown(f"### Cash-Flow Net : :{color}[{int(cash_flow_net)} € / mois]")
+    st.write(f"• Impôt Estimé : **-{int(impot_mois)} €**")
 
 with c2:
     st.subheader("🏁 Seuil de Rentabilité")
@@ -111,15 +108,13 @@ with c2:
     for test_occ in range(0, 101):
         t_ca = adr * 30.5 * (test_occ / 100)
         t_imp = calcul_impot(t_ca, statut)
-        t_charges = (t_ca * com_pct / 100) + f_fixes + mens_banque + t_imp
-        if t_ca >= t_charges:
+        if t_ca >= (t_ca * com_pct / 100) + f_fixes + mens_banque + t_imp:
             occ_seuil = test_occ
             break
-    st.info(f"Pour couvrir vos frais, vous devez louer au moins **{occ_seuil}%** du temps.")
-    st.write(f"Soit environ **{int(30.5 * occ_seuil / 100)} nuits** par mois à {adr} €.")
+    st.info(f"Équilibre à **{occ_seuil}%** d'occupation ({int(30.5 * occ_seuil / 100)} nuits).")
 
 st.markdown("---")
 
-# --- LIGNE 3 : TABLEAU D'AMORTISSEMENT ---
-st.subheader(f"📊 Tableau d'Amortissement Technique ({type_pret})")
+# Tableau d'amortissement sans l'index 0-179
+st.subheader(f"📊 Tableau d'Amortissement ({type_pret})")
 st.dataframe(df_amort, use_container_width=True, height=400, hide_index=True)
